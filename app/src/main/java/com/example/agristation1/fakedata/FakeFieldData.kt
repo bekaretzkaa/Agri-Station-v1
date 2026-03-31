@@ -1,0 +1,100 @@
+package com.example.agristation1.fakedata
+
+import com.example.agristation1.data.fieldDetails.FieldConnectivity
+import com.example.agristation1.data.fieldDetails.FieldDetails
+import com.example.agristation1.data.fieldDetails.FieldHealth
+import com.example.agristation1.data.fieldDetails.FieldLifecycle
+
+object FakeFieldData {
+
+    val fields = listOf(
+        FieldDetails(
+            id = 101,
+            farmId = 1,
+            title = "North Field",
+            area = 12.5,
+            type = "WHEAT",
+            soilMoisture = 41,
+            lastValidSoilMoisture = 41,
+            soilTemperature = 18,
+            lastValidSoilTemperature = 18,
+            airTemperature = 24,
+            lastValidAirTemperature = 24,
+            airHumidity = 58,
+            lastValidAirHumidity = 58,
+            lux = 32000,
+            lastValidLux = 32000,
+            totalSensors = 3,
+            activeSensors = 3,
+            health = FieldHealth.HEALTHY,
+            connectivity = FieldConnectivity.ONLINE,
+            lifecycle = FieldLifecycle.ACTIVE
+        ),
+        FieldDetails(
+            id = 102,
+            farmId = 1,
+            title = "South Field",
+            area = 9.8,
+            type = "CORN",
+            soilMoisture = 27,
+            lastValidSoilMoisture = 29,
+            soilTemperature = 20,
+            lastValidSoilTemperature = 20,
+            airTemperature = 29,
+            lastValidAirTemperature = 29,
+            airHumidity = 46,
+            lastValidAirHumidity = 46,
+            lux = 41000,
+            lastValidLux = 41000,
+            totalSensors = 2,
+            activeSensors = 1,
+            health = FieldHealth.WARNING,
+            connectivity = FieldConnectivity.PARTIAL,
+            lifecycle = FieldLifecycle.ACTIVE
+        ),
+        FieldDetails(
+            id = 103,
+            farmId = 1,
+            title = "East Orchard",
+            area = 6.2,
+            type = "APPLE",
+            soilMoisture = 35,
+            lastValidSoilMoisture = 35,
+            soilTemperature = 16,
+            lastValidSoilTemperature = 16,
+            airTemperature = 22,
+            lastValidAirTemperature = 22,
+            airHumidity = 63,
+            lastValidAirHumidity = 63,
+            lux = 28000,
+            lastValidLux = 28000,
+            totalSensors = 3,
+            activeSensors = 2,
+            health = FieldHealth.WARNING,
+            connectivity = FieldConnectivity.PARTIAL,
+            lifecycle = FieldLifecycle.ACTIVE
+        ),
+        FieldDetails(
+            id = 104,
+            farmId = 1,
+            title = "West Greenhouse",
+            area = 3.4,
+            type = "TOMATO",
+            soilMoisture = 52,
+            lastValidSoilMoisture = 52,
+            soilTemperature = 23,
+            lastValidSoilTemperature = 23,
+            airTemperature = 27,
+            lastValidAirTemperature = 27,
+            airHumidity = 71,
+            lastValidAirHumidity = 71,
+            lux = 18000,
+            lastValidLux = 18000,
+            totalSensors = 2,
+            activeSensors = 2,
+            health = FieldHealth.HEALTHY,
+            connectivity = FieldConnectivity.ONLINE,
+            lifecycle = FieldLifecycle.ACTIVE
+        )
+    )
+}

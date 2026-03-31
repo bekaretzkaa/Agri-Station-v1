@@ -1,0 +1,157 @@
+package com.example.agristation1.fakedata
+
+import com.example.agristation1.data.alertDetails.AlertDetails
+import com.example.agristation1.data.alertDetails.AlertLifecycle
+import com.example.agristation1.data.alertDetails.AlertSeverity
+import com.example.agristation1.data.alertDetails.AlertType
+import com.example.agristation1.data.alertDetails.AlertVerification
+import java.time.Instant
+
+object FakeAlertData {
+    val alerts = listOf(
+        AlertDetails(
+            id = 3001,
+            fieldId = 102,
+            title = "Low soil moisture",
+            description = "Soil moisture dropped below safe irrigation threshold.",
+            recommendation = "Start irrigation cycle for 20 minutes.",
+            currentValue = "27",
+            unit = "%",
+            threshold = "30",
+            expectedRange = "30-45",
+            deviation = "-3",
+            sensorId = "2004",
+            detectedAt = Instant.ofEpochSecond(1774598400),
+            lifecycle = AlertLifecycle.OPEN,
+            severity = AlertSeverity.WARNING,
+            type = AlertType.SOIL_MOISTURE,
+            verification = AlertVerification.UNVERIFIED
+        ),
+        AlertDetails(
+            id = 3002,
+            fieldId = 102,
+            title = "Sensor weak signal",
+            description = "Sensor connection is unstable and packets are delayed.",
+            recommendation = "Inspect gateway path and antenna position.",
+            currentValue = "Weak signal",
+            unit = "",
+            threshold = "",
+            expectedRange = "",
+            deviation = "",
+            sensorId = "2004",
+            detectedAt = Instant.ofEpochSecond(1774598700),
+            lifecycle = AlertLifecycle.ACKNOWLEDGED,
+            severity = AlertSeverity.NOTICE,
+            type = AlertType.SENSOR,
+            verification = AlertVerification.UNVERIFIED
+        ),
+        AlertDetails(
+            id = 3003,
+            fieldId = 102,
+            title = "Air temperature too high",
+            description = "Field air temperature is above configured daytime range.",
+            recommendation = "Check irrigation schedule and heat stress protection.",
+            currentValue = "29",
+            unit = "°C",
+            threshold = "28",
+            expectedRange = "18-28",
+            deviation = "+1",
+            sensorId = "2005",
+            detectedAt = Instant.ofEpochSecond(1774599000),
+            lifecycle = AlertLifecycle.OPEN,
+            severity = AlertSeverity.WARNING,
+            type = AlertType.AIR_TEMPERATURE,
+            verification = AlertVerification.UNVERIFIED
+        ),
+        AlertDetails(
+            id = 3004,
+            fieldId = 103,
+            title = "High humidity in orchard",
+            description = "Humidity remains elevated and may increase disease risk.",
+            recommendation = "Inspect ventilation and fungal prevention protocol.",
+            currentValue = "63",
+            unit = "%",
+            threshold = "60",
+            expectedRange = "45-60",
+            deviation = "+3",
+            sensorId = "2007",
+            detectedAt = Instant.ofEpochSecond(1774599300),
+            lifecycle = AlertLifecycle.OPEN,
+            severity = AlertSeverity.NOTICE,
+            type = AlertType.AIR_HUMIDITY,
+            verification = AlertVerification.UNVERIFIED
+        ),
+        AlertDetails(
+            id = 3005,
+            fieldId = 103,
+            title = "Lux sensor offline",
+            description = "Lux sensor stopped reporting valid readings.",
+            recommendation = "Check device battery and cable integrity.",
+            currentValue = "No data",
+            unit = "",
+            threshold = "",
+            expectedRange = "",
+            deviation = "",
+            sensorId = "2008",
+            detectedAt = Instant.ofEpochSecond(1774599600),
+            lifecycle = AlertLifecycle.OPEN,
+            severity = AlertSeverity.CRITICAL,
+            type = AlertType.SENSOR,
+            verification = AlertVerification.UNVERIFIED
+        ),
+        AlertDetails(
+            id = 3006,
+            fieldId = 104,
+            title = "Soil temperature elevated",
+            description = "Soil temperature is higher than greenhouse target.",
+            recommendation = "Reduce heating and increase ventilation.",
+            currentValue = "23",
+            unit = "°C",
+            threshold = "21",
+            expectedRange = "17-21",
+            deviation = "+2",
+            sensorId = "2009",
+            detectedAt = Instant.ofEpochSecond(1774599900),
+            lifecycle = AlertLifecycle.RESOLVED,
+            severity = AlertSeverity.NOTICE,
+            type = AlertType.SOIL_TEMPERATURE,
+            verification = AlertVerification.UNVERIFIED
+        ),
+        AlertDetails(
+            id = 3007,
+            fieldId = 101,
+            title = "Info: stable field metrics",
+            description = "All primary metrics are within normal range.",
+            recommendation = "No action required.",
+            currentValue = "OK",
+            unit = "",
+            threshold = "",
+            expectedRange = "",
+            deviation = "",
+            sensorId = "2001",
+            detectedAt = Instant.ofEpochSecond(1774600200),
+            lifecycle = AlertLifecycle.DISMISSED,
+            severity = AlertSeverity.INFO,
+            type = AlertType.UNKNOWN,
+            verification = AlertVerification.UNVERIFIED
+        ),
+        AlertDetails(
+            id = 3008,
+            fieldId = 103,
+            title = "Broken lux sensor confirmed",
+            description = "Device stopped reporting and failed self-check.",
+            recommendation = "Replace sensor during next maintenance window.",
+            currentValue = "Broken",
+            unit = "",
+            threshold = "",
+            expectedRange = "",
+            deviation = "",
+            sensorId = "2008",
+            detectedAt = Instant.ofEpochSecond(1774600500),
+            lifecycle = AlertLifecycle.OPEN,
+            severity = AlertSeverity.CRITICAL,
+            type = AlertType.SENSOR,
+            verification = AlertVerification.UNVERIFIED
+        )
+    )
+}
