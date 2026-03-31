@@ -1,5 +1,6 @@
 package com.example.agristation1.ui.pages
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -81,7 +82,7 @@ fun HomeMainScreen(
             uiState = uiState,
             onFieldClick = onFieldClick,
             onOpenAllFields = onOpenAllFields,
-            getTotalAlerts = { uiState.alerts.count { alertDetails -> alertDetails.fieldId == it} }
+            getTotalAlerts = { uiState.alerts.count { alertDetails -> alertDetails.fieldId == it } }
         )
     }
 }
@@ -129,7 +130,7 @@ fun HomeTopBar(
         IconButton(
             onClick = onChatClick,
             colors = IconButtonDefaults.iconButtonColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
                 contentColor = MaterialTheme.colorScheme.onSecondaryContainer
             )
         ) {
@@ -151,8 +152,10 @@ fun HomeScreen(
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
-        modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 12.dp)
+        modifier = modifier
+            .fillMaxSize()
+            .background(color = MaterialTheme.colorScheme.surface),
+        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 12.dp),
     ) {
         item {
             OverallInformation(
@@ -227,7 +230,8 @@ fun OverallInformation(
                 value = uiState.tasks.size,
                 text = {
                     Text(
-                        text = "${uiState.tasks.size }} need attention", style = MaterialTheme.typography.bodySmall
+                        text = "${uiState.tasks.size}} need attention",
+                        style = MaterialTheme.typography.bodySmall
                     )
                 },
                 modifier = Modifier.weight(1f),
@@ -261,8 +265,9 @@ fun InformationCard(
 ) {
     Card(
         modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
-    ) {
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
+        border = BorderStroke(1.dp, Color.LightGray)
+        ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Row {
                 Text(text = title)
@@ -286,7 +291,8 @@ fun ImmediateAttentionHeader(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
+        shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp),
+        border = BorderStroke(1.dp, Color.LightGray)
     ) {
         Row(
             modifier = Modifier
@@ -321,11 +327,12 @@ fun ImmediateAttentionInformationCard(
         modifier = Modifier
             .fillMaxWidth()
             .height(80.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
         shape = if (isLastItem) RoundedCornerShape(
             bottomStart = 12.dp, bottomEnd = 12.dp
         ) else RectangleShape,
-        onClick = { onFieldClick(item.id) }
+        onClick = { onFieldClick(item.id) },
+        border = BorderStroke(1.dp, Color.LightGray)
     ) {
         Column(
             modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.SpaceEvenly
@@ -383,7 +390,8 @@ fun FieldsOverviewHeader(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
+        border = BorderStroke(1.dp, Color.LightGray)
     ) {
         Column {
             Row(
@@ -425,11 +433,12 @@ fun FieldsOverviewInformationCard(
         modifier = Modifier
             .fillMaxWidth()
             .height(80.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
         shape = if (isLastItem) RoundedCornerShape(
             bottomStart = 12.dp, bottomEnd = 12.dp
         ) else RectangleShape,
-        onClick = { onFieldClick(item.id) }
+        onClick = { onFieldClick(item.id) },
+        border = BorderStroke(1.dp, Color.LightGray)
     ) {
         Column(
             modifier = Modifier

@@ -5,7 +5,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -50,12 +49,12 @@ import androidx.compose.ui.unit.dp
 import com.example.agristation1.data.AppColors
 import com.example.agristation1.data.fieldDetails.FieldConnectivity
 import com.example.agristation1.data.fieldDetails.FieldDetails
+import com.example.agristation1.data.fieldDetails.FieldLifecycle
 import com.example.agristation1.data.fieldDetails.toBorderColor
 import com.example.agristation1.data.fieldDetails.toContainerColor
 import com.example.agristation1.data.fieldDetails.toContentColor
 import com.example.agristation1.data.fieldDetails.toIconColor
 import com.example.agristation1.data.fieldDetails.toStringField
-import com.example.agristation1.data.taskDetails.toBorderColor
 import com.example.agristation1.fakedata.FakeFieldData
 import com.example.agristation1.ui.viewmodel.FieldFilter
 import com.example.agristation1.ui.viewmodel.FieldUiState
@@ -174,18 +173,50 @@ fun FieldsScreen(
     uiState: FieldUiState,
     onFieldClick: (Int) -> Unit,
 ) {
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(color = MaterialTheme.colorScheme.surface),
-        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 16.dp)
-    ) {
-        items(uiState.filteredFields) { item ->
-            FieldsInformationCard(
-                item = item,
-                onClick = onFieldClick,
+
+    if(uiState.filteredFields.isEmpty() && uiState.filteredArchivedFields.isEmpty()) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = "No fields",
+                style = MaterialTheme.typography.titleLarge
             )
-            Spacer(modifier = Modifier.height(20.dp))
+        }
+    } else {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(color = MaterialTheme.colorScheme.surface),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
+        ) {
+            items(uiState.filteredFields) { item ->
+                FieldsInformationCard(
+                    item = item,
+                    onClick = onFieldClick,
+                )
+                Spacer(modifier = Modifier.height(20.dp))
+            }
+
+            if(uiState.filteredArchivedFields.isNotEmpty()) {
+                item {
+                    Text(
+                        text = "Archived Fields",
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    Spacer(modifier = Modifier.height(20.dp))
+                }
+
+                items(uiState.filteredArchivedFields) { item ->
+                    FieldsInformationCard(
+                        item = item,
+                        onClick = onFieldClick
+                    )
+                    Spacer(modifier = Modifier.height(20.dp))
+                }
+            }
         }
     }
 }
@@ -200,9 +231,16 @@ fun FieldsInformationCard(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
-        ),
+        colors = if(item.lifecycle != FieldLifecycle.ARCHIVED) {
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
+            )
+        } else {
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+                contentColor = Color.Gray
+            )
+        },
         onClick = { onClick(item.id) },
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         border = BorderStroke(1.dp, Color.LightGray),
@@ -220,7 +258,7 @@ fun FieldsInformationCard(
                     modifier = Modifier
                         .width(stripeWidth)
                         .fillMaxHeight()
-                        .background(item.health.toBorderColor())
+                        .background(if(item.lifecycle != FieldLifecycle.ARCHIVED) item.health.toBorderColor() else item.lifecycle.toBorderColor())
                 )
             }
 
@@ -244,7 +282,7 @@ fun FieldsInformationCard(
                         imageVector = if (item.connectivity == FieldConnectivity.ONLINE) Icons.Outlined.Wifi else Icons.Outlined.WifiOff,
                         contentDescription = null,
                         modifier = Modifier.size(24.dp),
-                        tint = item.connectivity.toIconColor()
+                        tint = if(item.lifecycle != FieldLifecycle.ARCHIVED) item.connectivity.toIconColor() else Color.Gray
                     )
                 }
                 Spacer(modifier = Modifier.height(8.dp))
@@ -392,7 +430,8 @@ fun FieldsInformationCard(
 fun FieldsScreenPreview() {
     AppTheme {
         val uiState = FieldUiState(
-            fields = FakeFieldData.fields,
+            fields = FakeFieldData.fields.filter { it.lifecycle != FieldLifecycle.ARCHIVED }.take(2),
+            archivedFields = FakeFieldData.fields.filter { it.lifecycle == FieldLifecycle.ARCHIVED },
             selectedFilter = FieldFilter.All
         )
 

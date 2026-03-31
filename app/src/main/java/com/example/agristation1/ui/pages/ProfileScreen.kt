@@ -1,5 +1,6 @@
 package com.example.agristation1.ui.pages
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -60,7 +61,8 @@ fun ProfileScreen(
 ) {
     LazyColumn(
         modifier = modifier
-            .fillMaxSize(),
+            .fillMaxSize()
+            .background(color = MaterialTheme.colorScheme.surface),
         contentPadding = PaddingValues(horizontal = 12.dp)
     ) {
         item {
@@ -113,7 +115,8 @@ fun ProfileInformation(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
+        border = BorderStroke(1.dp, Color.LightGray)
     ) {
         Column(
             modifier = Modifier.padding(12.dp).fillMaxSize(),
@@ -198,13 +201,14 @@ fun AppSettings(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
+        border = BorderStroke(1.dp, Color.LightGray)
     ) {
         Column {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(color = MaterialTheme.colorScheme.surfaceContainer)
                     .padding(12.dp)
                     .height(40.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -221,7 +225,6 @@ fun AppSettings(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(color = MaterialTheme.colorScheme.surfaceContainer)
                     .padding(horizontal = 12.dp, vertical = 20.dp)
                     .height(40.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -254,7 +257,6 @@ fun AppSettings(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(color = MaterialTheme.colorScheme.surfaceContainer)
                     .padding(horizontal = 12.dp, vertical = 20.dp)
                     .height(40.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -287,7 +289,6 @@ fun AppSettings(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(color = MaterialTheme.colorScheme.surfaceContainer)
                     .padding(horizontal = 12.dp, vertical = 20.dp)
                     .height(40.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -323,13 +324,14 @@ fun AccountSettings(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
+        shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(1.dp, Color.LightGray)
     ) {
         Column {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(color = MaterialTheme.colorScheme.surfaceContainer)
                     .padding(12.dp)
                     .height(40.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -346,7 +348,6 @@ fun AccountSettings(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(color = MaterialTheme.colorScheme.surfaceContainer)
                     .padding(horizontal = 12.dp, vertical = 20.dp)
                     .height(40.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -379,7 +380,6 @@ fun AccountSettings(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(color = MaterialTheme.colorScheme.surfaceContainer)
                     .padding(horizontal = 12.dp, vertical = 20.dp)
                     .height(40.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -416,7 +416,8 @@ fun About(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
+        border = BorderStroke(1.dp, Color.LightGray)
     ) {
         Column(
             modifier = Modifier.padding(12.dp)

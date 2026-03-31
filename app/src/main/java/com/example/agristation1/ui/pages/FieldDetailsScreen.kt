@@ -71,6 +71,7 @@ import com.example.agristation1.data.alertDetails.toContentColor
 import com.example.agristation1.data.alertDetails.toStringField
 import com.example.agristation1.data.fieldDetails.FieldConnectivity
 import com.example.agristation1.data.fieldDetails.FieldDetails
+import com.example.agristation1.data.fieldDetails.FieldHealth
 import com.example.agristation1.data.fieldDetails.toBorderColor
 import com.example.agristation1.data.fieldDetails.toContainerColor
 import com.example.agristation1.data.fieldDetails.toContentColor
@@ -225,7 +226,7 @@ fun FieldDetailsScreen(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(color = MaterialTheme.colorScheme.surfaceContainer),
+            .background(color = MaterialTheme.colorScheme.surface),
         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 16.dp)
     ) {
         item {
@@ -244,6 +245,7 @@ fun FieldDetailsScreen(
         if (!alerts.isEmpty()) {
             item {
                 FieldDetailsActiveAlertsHeader(
+                    fieldDetails = fieldDetails,
                     alertsSize = alerts.size,
                     onOpenAllAlerts = onOpenAllAlerts
                 )
@@ -274,7 +276,8 @@ fun FieldDetailsMainDetails(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Card(
                 modifier = Modifier.weight(1f),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
+                border = BorderStroke(1.dp, Color.LightGray)
             ) {
                 Column(
                     modifier = Modifier.padding(12.dp)
@@ -300,7 +303,8 @@ fun FieldDetailsMainDetails(
             Spacer(modifier = Modifier.width(12.dp))
             Card(
                 modifier = Modifier.weight(1f),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
+                border = BorderStroke(1.dp, Color.LightGray)
             ) {
                 Column(
                     modifier = Modifier.padding(12.dp)
@@ -327,7 +331,8 @@ fun FieldDetailsMainDetails(
 
             Card(
                 modifier = Modifier.weight(1f),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
+                border = BorderStroke(1.dp, Color.LightGray)
             ) {
                 Column(
                     modifier = Modifier.padding(12.dp)
@@ -359,7 +364,8 @@ fun FieldDetailsMainDetails(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Card(
                 modifier = Modifier.weight(1f),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
+                border = BorderStroke(1.dp, Color.LightGray)
             ) {
                 Column(
                     modifier = Modifier.padding(12.dp)
@@ -385,7 +391,8 @@ fun FieldDetailsMainDetails(
             Spacer(modifier = Modifier.width(12.dp))
             Card(
                 modifier = Modifier.weight(1f),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
+                border = BorderStroke(1.dp, Color.LightGray)
             ) {
                 Column(
                     modifier = Modifier.padding(12.dp)
@@ -412,7 +419,8 @@ fun FieldDetailsMainDetails(
 
             Card(
                 modifier = Modifier.weight(1f),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
+                border = BorderStroke(1.dp, Color.LightGray)
             ) {
                 Column(
                     modifier = Modifier.padding(12.dp)
@@ -481,6 +489,7 @@ fun FieldDetailsMap() {
 
 @Composable
 fun FieldDetailsActiveAlertsHeader(
+    fieldDetails: FieldDetails,
     alertsSize: Int,
     onOpenAllAlerts: () -> Unit,
 ) {
@@ -488,9 +497,10 @@ fun FieldDetailsActiveAlertsHeader(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = AppColors.red.c100,
-            contentColor = AppColors.red.c800
-        )
+            containerColor = if(fieldDetails.health == FieldHealth.HEALTHY && alertsSize > 0) AppColors.yellow.c100 else fieldDetails.health.toContainerColor(),
+            contentColor = if(fieldDetails.health == FieldHealth.HEALTHY && alertsSize > 0) AppColors.yellow.c800 else fieldDetails.health.toContentColor()
+        ),
+        border = BorderStroke(1.dp, Color.LightGray)
     ) {
         Column {
             Row(
@@ -513,7 +523,7 @@ fun FieldDetailsActiveAlertsHeader(
                 TextButton(
                     onClick = onOpenAllAlerts,
                     colors = ButtonDefaults.textButtonColors(
-                        contentColor = AppColors.red.c800
+                        contentColor = if(fieldDetails.health == FieldHealth.HEALTHY && alertsSize > 0) AppColors.yellow.c800 else fieldDetails.health.toContentColor()
                     )
                 ) {
                     Text(
@@ -540,12 +550,13 @@ fun FieldDetailsActiveAlertsInformationCard(
     Card(
         modifier = Modifier
             .fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
         shape = if (isLastItem) RoundedCornerShape(
             bottomStart = 12.dp,
             bottomEnd = 12.dp
         ) else RectangleShape,
-        onClick = { onOpenAlertDetails(alertDetails.id) }
+        onClick = { onOpenAlertDetails(alertDetails.id) },
+        border = BorderStroke(1.dp, Color.LightGray)
     ) {
         Row(
             modifier = Modifier

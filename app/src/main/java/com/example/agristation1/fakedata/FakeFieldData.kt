@@ -95,6 +95,28 @@ object FakeFieldData {
             health = FieldHealth.HEALTHY,
             connectivity = FieldConnectivity.ONLINE,
             lifecycle = FieldLifecycle.ACTIVE
+        ),
+        FieldDetails(
+            id = 105,
+            farmId = 1,
+            title = "Archived Field",
+            area = 3.4,
+            type = "ORANGE",
+            soilMoisture = 52,
+            lastValidSoilMoisture = 52,
+            soilTemperature = 23,
+            lastValidSoilTemperature = 23,
+            airTemperature = 27,
+            lastValidAirTemperature = 27,
+            airHumidity = 71,
+            lastValidAirHumidity = 71,
+            lux = 18000,
+            lastValidLux = 18000,
+            totalSensors = 2,
+            activeSensors = 2,
+            health = FieldHealth.HEALTHY,
+            connectivity = FieldConnectivity.OFFLINE,
+            lifecycle = FieldLifecycle.ARCHIVED
         )
     )
 }

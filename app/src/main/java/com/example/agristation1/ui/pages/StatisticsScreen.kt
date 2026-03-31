@@ -1,5 +1,6 @@
 package com.example.agristation1.ui.pages
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -228,15 +229,17 @@ fun StatisticsScreen(
 
     LazyColumn(
         modifier = Modifier
-            .fillMaxSize(),
+            .fillMaxSize()
+            .background(color = MaterialTheme.colorScheme.surface),
         contentPadding = PaddingValues(12.dp)
     ) {
         item {
             Card(
                 onClick = {},
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer
-                )
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
+                ),
+                border = BorderStroke(1.dp, Color.LightGray)
             ) {
                 Column(
                     modifier = Modifier.padding(12.dp)
@@ -292,8 +295,9 @@ fun StatisticsScreen(
             Card(
                 onClick = {},
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer
-                )
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
+                ),
+                border = BorderStroke(1.dp, Color.LightGray)
             ) {
                 Column(
                     modifier = Modifier.padding(12.dp)
@@ -349,8 +353,9 @@ fun StatisticsScreen(
             Card(
                 onClick = {},
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer
-                )
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
+                ),
+                border = BorderStroke(1.dp, Color.LightGray)
             ) {
                 Column(
                     modifier = Modifier.padding(12.dp)

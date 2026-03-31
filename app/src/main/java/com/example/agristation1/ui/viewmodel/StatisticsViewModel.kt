@@ -20,9 +20,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
-import java.time.Period
 
 sealed interface TemperatureFilter {
     data object Both : TemperatureFilter
@@ -82,17 +82,31 @@ class StatisticsViewModel(
 
     private val temperatureChartState: StateFlow<TemperatureChartUiState> =
         combine(
-            historyOfflineRepository.getSoilTemperatureByFieldIdStream(fieldId),
-            historyOfflineRepository.getAirTemperatureByFieldIdStream(fieldId),
             temperatureFilter,
             temperaturePeriodFilter
-        ) { soilTemperature, airTemperature, filter, period ->
-            TemperatureChartUiState(
-                filter = filter,
-                period = period,
-                soilData = soilTemperature.take(period.toPointLimit()),
-                airData = airTemperature.take(period.toPointLimit())
-            )
+        ) { filter, period ->
+            filter to period
+        }.flatMapLatest { (filter, period) ->
+            flow {
+                val soilData = when (period) {
+                    PeriodFilter.Day -> historyOfflineRepository.getSoilTemperatureLastDay(fieldId)
+                    PeriodFilter.Week -> historyOfflineRepository.getSoilTemperatureLastWeek(fieldId)
+                    PeriodFilter.Month -> historyOfflineRepository.getSoilTemperatureLastMonth(fieldId)
+                }
+                val airData = when (period) {
+                    PeriodFilter.Day -> historyOfflineRepository.getAirTemperatureLastDay(fieldId)
+                    PeriodFilter.Week -> historyOfflineRepository.getAirTemperatureLastWeek(fieldId)
+                    PeriodFilter.Month -> historyOfflineRepository.getAirTemperatureLastMonth(fieldId)
+                }
+                emit(
+                    TemperatureChartUiState(
+                        filter = filter,
+                        period = period,
+                        soilData = soilData,
+                        airData = airData
+                    )
+                )
+            }
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
@@ -104,17 +118,33 @@ class StatisticsViewModel(
 
     private val moistureChartState: StateFlow<MoistureChartUiState> =
         combine(
-            historyOfflineRepository.getSoilMoistureByFieldIdStream(fieldId),
-            historyOfflineRepository.getAirHumidityByFieldIdStream(fieldId),
             moistureFilter,
             moisturePeriodFilter
-        ) { soilMoisture, airHumidity, filter, period ->
-            MoistureChartUiState(
-                filter = filter,
-                period = period,
-                soilData = soilMoisture.take(period.toPointLimit()),
-                airData = airHumidity.take(period.toPointLimit())
-            )
+        ) { filter, period ->
+            filter to period
+        }.flatMapLatest { (filter, period) ->
+            flow {
+                val soilData = when (period) {
+                    PeriodFilter.Day -> historyOfflineRepository.getSoilMoistureLastDay(fieldId)
+                    PeriodFilter.Week -> historyOfflineRepository.getSoilMoistureLastWeek(fieldId)
+                    PeriodFilter.Month -> historyOfflineRepository.getSoilMoistureLastMonth(fieldId)
+                }
+
+                val airData = when (period) {
+                    PeriodFilter.Day -> historyOfflineRepository.getAirHumidityLastDay(fieldId)
+                    PeriodFilter.Week -> historyOfflineRepository.getAirHumidityLastWeek(fieldId)
+                    PeriodFilter.Month -> historyOfflineRepository.getAirHumidityLastMonth(fieldId)
+                }
+
+                emit(
+                    MoistureChartUiState(
+                        filter = filter,
+                        period = period,
+                        soilData = soilData,
+                        airData = airData
+                    )
+                )
+            }
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
@@ -125,13 +155,23 @@ class StatisticsViewModel(
 
     private val luxChartState: StateFlow<LuxChartUiState> =
         combine(
-            historyOfflineRepository.getLuxByFieldIdStream(fieldId),
             luxPeriodFilter
-        ) { lux, period ->
-            LuxChartUiState(
-                period = period,
-                data = lux.take(period.toPointLimit())
-            )
+        ) { period ->
+            period
+        }.flatMapLatest { (period) ->
+            flow {
+                val data = when (period) {
+                    PeriodFilter.Day -> historyOfflineRepository.getLuxLastDay(fieldId)
+                    PeriodFilter.Week -> historyOfflineRepository.getLuxLastWeek(fieldId)
+                    PeriodFilter.Month -> historyOfflineRepository.getLuxLastMonth(fieldId)
+                }
+                emit(
+                    LuxChartUiState(
+                        period = period,
+                        data = data
+                    )
+                )
+            }
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),

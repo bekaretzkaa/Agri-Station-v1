@@ -37,10 +37,17 @@ data class FieldUiState(
         FieldFilter.Warning -> fields.filter { it.health == FieldHealth.WARNING }
     }
 
-    val allCount: Int = fields.size
-    val healthyCount: Int = fields.count { it.health == FieldHealth.HEALTHY }
-    val warningCount: Int = fields.count { it.health == FieldHealth.WARNING }
-    val criticalCount: Int = fields.count { it.health == FieldHealth.CRITICAL }
+    val filteredArchivedFields: List<FieldDetails> = when(selectedFilter) {
+        FieldFilter.All -> archivedFields
+        FieldFilter.Healthy -> archivedFields.filter { it.health == FieldHealth.HEALTHY }
+        FieldFilter.Critical -> archivedFields.filter { it.health == FieldHealth.CRITICAL }
+        FieldFilter.Warning -> archivedFields.filter { it.health == FieldHealth.WARNING }
+    }
+
+    val allCount: Int = fields.size + archivedFields.size
+    val healthyCount: Int = fields.count { it.health == FieldHealth.HEALTHY } + archivedFields.count { it.health == FieldHealth.HEALTHY }
+    val warningCount: Int = fields.count { it.health == FieldHealth.WARNING } + archivedFields.count { it.health == FieldHealth.WARNING }
+    val criticalCount: Int = fields.count { it.health == FieldHealth.CRITICAL } + archivedFields.count { it.health == FieldHealth.CRITICAL }
 }
 
 class FieldViewModel(
