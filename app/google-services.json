@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "177590645491",
+    "project_id": "agri-station-v1",
+    "storage_bucket": "agri-station-v1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:177590645491:android:0291e6200547973d573d86",
+        "android_client_info": {
+          "package_name": "com.example.agristation1"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD3vhuPUPtSVyISza29EPbXGyh4Jgamxvw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

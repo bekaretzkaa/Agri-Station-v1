@@ -8,7 +8,7 @@ import java.time.Instant
 @Entity(tableName = "chats_history")
 data class ChatEntity(
     @PrimaryKey(autoGenerate = true)
-    val id: Int = 0,
+    val id: Long = 0,
     val title: String? = null,
 
     @ColumnInfo(name = "created_at")

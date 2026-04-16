@@ -6,7 +6,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -57,8 +56,11 @@ import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -78,8 +80,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.agristation1.data.AppColors
+import com.example.agristation1.data.alertDetails.AlertLifecycle
 import com.example.agristation1.data.alertDetails.toBorderColor
 import com.example.agristation1.data.alertDetails.toContainerColor
+import com.example.agristation1.data.formatRelativeTime
 import com.example.agristation1.data.taskDetails.TaskDetails
 import com.example.agristation1.data.taskDetails.TaskPriority
 import com.example.agristation1.data.taskDetails.TaskStatus
@@ -88,7 +92,6 @@ import com.example.agristation1.data.taskDetails.toBorderColor
 import com.example.agristation1.data.taskDetails.toContainerColor
 import com.example.agristation1.data.taskDetails.toContentColor
 import com.example.agristation1.data.taskDetails.toStringField
-import com.example.agristation1.data.toUiDueDate
 import com.example.agristation1.fakedata.FakeFieldData
 import com.example.agristation1.fakedata.FakeTaskData
 import com.example.agristation1.ui.viewmodel.TaskFilter
@@ -96,7 +99,9 @@ import com.example.agristation1.ui.viewmodel.TaskFormState
 import com.example.agristation1.ui.viewmodel.TaskUiState
 import com.example.agristation1.ui.viewmodel.TaskViewModel
 import com.example.compose.AppTheme
+import okhttp3.internal.concurrent.Task
 import java.text.SimpleDateFormat
+import java.time.Instant
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Date
@@ -106,7 +111,7 @@ import java.util.Locale
 @Composable
 fun TasksMainScreen(
     viewModel: TaskViewModel,
-    onTaskClick: (Int) -> Unit = {}
+    onTaskClick: (Long) -> Unit = {}
 ) {
 
     LaunchedEffect(Unit) {
@@ -114,6 +119,10 @@ fun TasksMainScreen(
     }
 
     val uiState: TaskUiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
+    val refreshError by viewModel.refreshError.collectAsStateWithLifecycle()
+
+    val snackbarHostState = remember { SnackbarHostState() }
 
     val sheetState = rememberModalBottomSheetState()
     var showBottomSheetAddTask by remember { mutableStateOf(false) }
@@ -144,15 +153,32 @@ fun TasksMainScreen(
         }
     }
 
-    Column {
-        TasksTopBar(
-            uiState = uiState,
-            onFilterChange = { viewModel.onFilterChange(it) },
-            onOpenNewTask = { showBottomSheetAddTask = true }
-        )
-        TasksScreen(
-            uiState = uiState,
-            onTaskClick = onTaskClick
+    LaunchedEffect(refreshError) {
+        refreshError?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.clearRefreshError()
+        }
+    }
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column {
+            TasksTopBar(
+                uiState = uiState,
+                onFilterChange = { viewModel.onFilterChange(it) },
+                onOpenNewTask = { showBottomSheetAddTask = true }
+            )
+            TasksScreen(
+                uiState = uiState,
+                onTaskClick = onTaskClick,
+                isRefreshing = isRefreshing,
+                onRefresh = { viewModel.refresh() }
+            )
+        }
+
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 16.dp)
         )
     }
 }
@@ -219,7 +245,7 @@ fun TasksTopBar(
                     )
                 ) {
                     Text(
-                        text = "High (${uiState.highPriorityCount})",
+                        text = "High (${uiState.highCount})",
                         style = MaterialTheme.typography.bodyMedium,
                     )
                 }
@@ -235,7 +261,7 @@ fun TasksTopBar(
                     )
                 ) {
                     Text(
-                        text = "Medium (${uiState.mediumPriorityCount})",
+                        text = "Medium (${uiState.mediumCount})",
                         style = MaterialTheme.typography.bodyMedium,
                     )
                 }
@@ -251,7 +277,7 @@ fun TasksTopBar(
                     )
                 ) {
                     Text(
-                        text = "Low (${uiState.lowPriorityCount})",
+                        text = "Low (${uiState.lowCount})",
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
@@ -265,21 +291,62 @@ fun TasksTopBar(
 @Composable
 fun TasksScreen(
     uiState: TaskUiState,
-    onTaskClick: (Int) -> Unit,
+    onTaskClick: (Long) -> Unit,
+    isRefreshing: Boolean,
+    onRefresh: () -> Unit
 ) {
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(color = MaterialTheme.colorScheme.surface),
-        contentPadding = PaddingValues(vertical = 12.dp, horizontal = 16.dp),
+    PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = onRefresh
     ) {
-        items(uiState.filteredTasks) { item ->
-            TaskInformationCard(
-                item,
-                onTaskClick,
-                uiState
-            )
-            Spacer(modifier = Modifier.height(20.dp))
+
+        if(uiState.filteredTasks.isEmpty() && uiState.archivedTasks.isEmpty()) {
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = "No tasks",
+                    style = MaterialTheme.typography.titleLarge
+                )
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(color = MaterialTheme.colorScheme.surface),
+                contentPadding = PaddingValues(vertical = 12.dp, horizontal = 16.dp),
+            ) {
+                items(uiState.filteredTasks) { item ->
+                    TaskInformationCard(
+                        item,
+                        onTaskClick,
+                        uiState
+                    )
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                }
+
+                if(uiState.archivedTasks.isNotEmpty()) {
+                    item {
+                        Text(
+                            text = "Archived Tasks",
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                        Spacer(modifier = Modifier.height(20.dp))
+                    }
+
+                    items(uiState.archivedTasks) { item ->
+                        TaskInformationCard(
+                            item,
+                            onTaskClick,
+                            uiState
+                        )
+                        Spacer(modifier = Modifier.height(20.dp))
+                    }
+                }
+            }
         }
     }
 }
@@ -287,7 +354,7 @@ fun TasksScreen(
 @Composable
 fun TaskInformationCard(
     item: TaskDetails,
-    onTaskClick: (Int) -> Unit,
+    onTaskClick: (Long) -> Unit,
     uiState: TaskUiState,
 ) {
     val stripeWidth = 6.dp
@@ -295,9 +362,16 @@ fun TaskInformationCard(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
-        ),
+        colors = if(item.status != TaskStatus.CANCELLED && item.status != TaskStatus.COMPLETED) {
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
+            )
+        } else {
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+                contentColor = Color.Gray
+            )
+        },
         onClick = { onTaskClick(item.id) },
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         border = BorderStroke(1.dp, Color.LightGray),
@@ -315,7 +389,11 @@ fun TaskInformationCard(
                     modifier = Modifier
                         .width(stripeWidth)
                         .fillMaxHeight()
-                        .background(item.status.toBorderColor())
+                        .background(color = when(item.status) {
+                            TaskStatus.COMPLETED -> AppColors.green.c200
+                            TaskStatus.CANCELLED -> AppColors.gray.c200
+                            else -> item.status.toBorderColor()
+                        })
                 )
             }
 
@@ -332,119 +410,105 @@ fun TaskInformationCard(
                 Column {
                     Row {
                         Column {
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Icon(
-                                imageVector = when (item.status) {
-                                    TaskStatus.COMPLETED -> Icons.Outlined.CheckCircle
-                                    TaskStatus.IN_PROGRESS -> Icons.Outlined.AccessTime
-                                    TaskStatus.OPEN -> Icons.Outlined.Circle
-                                    TaskStatus.OVERDUE -> Icons.Outlined.ErrorOutline
-                                    TaskStatus.CANCELLED -> Icons.Outlined.Cancel
-                                },
-                                contentDescription = null,
-                                tint = when (item.status) {
-                                    TaskStatus.COMPLETED -> AppColors.green.c600
-                                    TaskStatus.IN_PROGRESS -> AppColors.blue.c600
-                                    TaskStatus.CANCELLED -> AppColors.gray.c600
-                                    TaskStatus.OVERDUE -> AppColors.red.c600
-                                    TaskStatus.OPEN -> AppColors.gray.c600
-                                }
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Box(
-                                    modifier = Modifier.fillMaxWidth(0.75f)
-                                ) {
-                                    Text(
-                                        text = item.title ?: "",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        color = if (item.status == TaskStatus.COMPLETED)
-                                            Color.Gray
-                                        else
-                                            Color.Black,
-                                        modifier = if (item.status == TaskStatus.COMPLETED)
-                                            Modifier.drawBehind {
-                                                val strokeWidth = 2.dp.toPx()
-                                                val y = size.height / 2
-
-                                                drawLine(
-                                                    color = Color.Black,
-                                                    start = Offset(0f, y),
-                                                    end = Offset(size.width, y),
-                                                    strokeWidth = strokeWidth
-                                                )
-                                            }
-                                        else
-                                            Modifier
-                                    )
-                                }
-                                Card(
-                                    colors = CardDefaults.cardColors(containerColor = item.priority.toContainerColor()),
-                                    border = BorderStroke(1.dp, item.priority.toBorderColor()),
-                                    shape = RoundedCornerShape(6.dp)
-                                ) {
-                                    Text(
-                                        text = item.priority.toStringField(),
-                                        color = item.priority.toContentColor(),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        modifier = Modifier.padding(
-                                            vertical = 4.dp,
-                                            horizontal = 8.dp
-                                        ),
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-                                }
-                            }
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(
-                                        text = uiState.fields.find { it.id == item.fieldId }?.title
-                                            ?: "Unknown Field",
-                                        style = MaterialTheme.typography.bodyLarge,
-                                    )
-                                    if (item.alertId != null) {
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Box(
-                                            modifier = Modifier
-                                                .size(4.dp)
-                                                .background(
-                                                    color = Color.Gray,
-                                                    shape = CircleShape
-                                                )
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text(
-                                            text = "From Alert",
-                                            style = MaterialTheme.typography.bodyLarge
-                                        )
+                            Row {
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Icon(
+                                    imageVector = when (item.status) {
+                                        TaskStatus.COMPLETED -> Icons.Outlined.CheckCircle
+                                        TaskStatus.IN_PROGRESS -> Icons.Outlined.AccessTime
+                                        TaskStatus.OPEN -> Icons.Outlined.Circle
+                                        TaskStatus.OVERDUE -> Icons.Outlined.ErrorOutline
+                                        TaskStatus.CANCELLED -> Icons.Outlined.Cancel
+                                    },
+                                    contentDescription = null,
+                                    tint = when (item.status) {
+                                        TaskStatus.COMPLETED -> AppColors.green.c600
+                                        TaskStatus.IN_PROGRESS -> AppColors.blue.c600
+                                        TaskStatus.CANCELLED -> AppColors.gray.c600
+                                        TaskStatus.OVERDUE -> AppColors.red.c600
+                                        TaskStatus.OPEN -> AppColors.gray.c600
                                     }
-                                }
-                                Card(
-                                    colors = CardDefaults.cardColors(containerColor = item.status.toContainerColor()),
-                                    border = BorderStroke(1.dp, item.status.toBorderColor()),
-                                    shape = RoundedCornerShape(6.dp)
-                                ) {
-                                    Text(
-                                        text = item.status.toStringField(),
-                                        color = item.status.toContentColor(),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        modifier = Modifier.padding(
-                                            vertical = 4.dp,
-                                            horizontal = 8.dp
-                                        ),
-                                        fontWeight = FontWeight.SemiBold
-                                    )
+                                )
+
+                                Spacer(modifier = Modifier.width(12.dp))
+
+                                Column(modifier = Modifier.fillMaxWidth()) {
+
+                                    // 1 line: title + priority
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.Top
+                                    ) {
+                                        Text(
+                                            text = item.title ?: "",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            modifier = Modifier.weight(1f),
+                                            maxLines = 2
+                                        )
+
+                                        Spacer(modifier = Modifier.width(8.dp))
+
+                                        Card(
+                                            colors = CardDefaults.cardColors(
+                                                containerColor = if (
+                                                    item.status != TaskStatus.COMPLETED &&
+                                                    item.status != TaskStatus.CANCELLED
+                                                ) item.priority.toContainerColor() else AppColors.gray.c100
+                                            ),
+                                            border = BorderStroke(
+                                                1.dp,
+                                                if (
+                                                    item.status != TaskStatus.COMPLETED &&
+                                                    item.status != TaskStatus.CANCELLED
+                                                ) item.priority.toBorderColor() else AppColors.gray.c200
+                                            ),
+                                            shape = RoundedCornerShape(6.dp)
+                                        ) {
+                                            Text(
+                                                text = item.priority.toStringField(),
+                                                color = if (
+                                                    item.status != TaskStatus.COMPLETED &&
+                                                    item.status != TaskStatus.CANCELLED
+                                                ) item.priority.toContentColor() else AppColors.gray.c800,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                modifier = Modifier.padding(vertical = 4.dp, horizontal = 8.dp),
+                                                fontWeight = FontWeight.SemiBold
+                                            )
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.height(8.dp))
+
+                                    // 2 line: field + from alert + status
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column(
+                                            modifier = Modifier.weight(1f)
+                                        ) {
+                                            Text(
+                                                text = uiState.fields.find { it.id == item.fieldId }?.title ?: "Unknown Field",
+                                                style = MaterialTheme.typography.bodyLarge,
+                                            )
+                                        }
+
+                                        Spacer(modifier = Modifier.width(8.dp))
+
+                                        Card(
+                                            colors = CardDefaults.cardColors(containerColor = item.status.toContainerColor()),
+                                            border = BorderStroke(1.dp, item.status.toBorderColor()),
+                                            shape = RoundedCornerShape(6.dp),
+                                        ) {
+                                            Text(
+                                                text = item.status.toStringField(),
+                                                color = item.status.toContentColor(),
+                                                style = MaterialTheme.typography.bodySmall,
+                                                modifier = Modifier.padding(vertical = 4.dp, horizontal = 8.dp),
+                                                fontWeight = FontWeight.SemiBold
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -474,8 +538,13 @@ fun TaskInformationCard(
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "Due ${item.timeDue?.toUiDueDate()}",
+                            text = "Due ${formatRelativeTime(item.timeDue)}",
                             style = MaterialTheme.typography.bodyLarge,
+                        )
+                        Spacer(modifier = Modifier.weight(1f))
+                        Text(
+                            text = "from alert",
+                            style = MaterialTheme.typography.bodyLarge
                         )
                     }
                 }
@@ -491,9 +560,9 @@ fun AddTaskSheet(
     onDismiss: () -> Unit,
     onTitleChange: (String) -> Unit,
     onDescriptionChange: (String) -> Unit,
-    onFieldChange: (Int) -> Unit,
+    onFieldChange: (Long) -> Unit,
     onPriorityChange: (TaskPriority) -> Unit,
-    onDueDateChange: (LocalDate) -> Unit,
+    onDueDateChange: (Instant) -> Unit,
     onAddTask: () -> Unit,
     onTypeChange: (TaskType) -> Unit,
 ) {
@@ -692,7 +761,7 @@ fun AddTaskSheet(
                     .height(50.dp),
                 shape = RoundedCornerShape(12.dp),
                 onClick = onAddTask,
-                enabled = !(formState.title?.isBlank() ?: false || formState.description?.isBlank() ?: false || formState.fieldId == -1),
+                enabled = !(formState.title?.isBlank() ?: false || formState.description?.isBlank() ?: false || formState.fieldId == -1L),
             ) {
                 Row(
                     modifier = Modifier.fillMaxSize(),
@@ -743,7 +812,7 @@ fun AddTaskSheet(
 fun FieldDropDown(
     uiState: TaskUiState,
     formState: TaskFormState,
-    onFieldChange: (Int) -> Unit
+    onFieldChange: (Long) -> Unit
 ) {
     val options = uiState.fields
     var expanded by remember { mutableStateOf(false) }
@@ -864,7 +933,7 @@ fun TaskTypeDropDown(
 @Composable
 fun DueDateFieldWithDialog(
     formState: TaskFormState,
-    onDueDateChange: (LocalDate) -> Unit
+    onDueDateChange: (Instant) -> Unit
 ) {
 
     var showDialog by remember { mutableStateOf(false) }
@@ -892,7 +961,7 @@ fun DueDateFieldWithDialog(
         ) {
             val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
             OutlinedTextField(
-                value = formState.timeDue?.format(dateFormatter) ?: "no date",
+                value = formState.timeDue.toString() ?: "no date",
                 onValueChange = {},
                 readOnly = true,
                 placeholder = { Text(text = "dd.mm.yyyy") },
@@ -932,7 +1001,7 @@ fun DueDateFieldWithDialog(
                     onClick = {
                         val millis = datePickerState.selectedDateMillis
                         if (millis != null) {
-                            onDueDateChange(LocalDate.ofEpochDay(millis / 86400000))
+                            onDueDateChange(Instant.ofEpochMilli(millis))
                         }
                         showDialog = false
                     }
@@ -962,10 +1031,15 @@ fun DueDateFieldWithDialog(
 @Composable
 fun TasksScreenPreview() {
     AppTheme {
+        val newTasks =
+            FakeTaskData.tasks.filter { it.status != TaskStatus.CANCELLED && it.status != TaskStatus.COMPLETED }
+
         val uiState = TaskUiState(
             tasks = FakeTaskData.tasks,
+            filteredTasks = newTasks.take(2),
             fields = FakeFieldData.fields,
-            selectedFilter = TaskFilter.All
+            selectedFilter = TaskFilter.All,
+            archivedTasks = FakeTaskData.tasks.filter { it.status == TaskStatus.COMPLETED || it.status == TaskStatus.CANCELLED }
         )
 
         Column {
@@ -975,7 +1049,9 @@ fun TasksScreenPreview() {
             )
             TasksScreen(
                 uiState = uiState,
-                onTaskClick = { }
+                onTaskClick = { },
+                isRefreshing = false,
+                onRefresh = { }
             )
         }
     }

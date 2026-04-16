@@ -6,6 +6,7 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.example.agristation1.data.fieldDetails.FieldDetails
+import com.google.android.gms.maps.model.LatLng
 
 @Entity(
     tableName = "sensor_details",
@@ -24,12 +25,15 @@ import com.example.agristation1.data.fieldDetails.FieldDetails
 )
 data class SensorDetails (
     @PrimaryKey
-    val id: Int,
+    val id: Long,
     @ColumnInfo(name = "field_id")
-    val fieldId: Int,
+    val fieldId: Long,
     val name: String?,
-    val coordinates: Int?,
+    val latitude: Double,
+    val longitude: Double,
 
     val battery: SensorBattery,
     val state: SensorState
-)
+) {
+    fun toLatLng(): LatLng = LatLng(latitude, longitude)
+}

@@ -1,22 +1,21 @@
 package com.example.agristation1.ui.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.agristation1.data.chatDetails.ChatDetailsOfflineRepository
-import com.example.agristation1.data.chatDetails.ChatDetailsRepository
 import com.example.agristation1.data.chatDetails.ChatEntity
 import com.example.agristation1.data.chatDetails.ChatMessageEntity
 import com.example.agristation1.data.chatDetails.MessageRole
 import com.example.agristation1.data.chatDetails.MessageStatus
+import com.example.agristation1.network.gemini.GeminiRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
@@ -34,12 +33,13 @@ data class ChatUiState(
 )
 
 class ChatViewModel(
-    private val chatDetailsOfflineRepository: ChatDetailsOfflineRepository
+    private val chatDetailsOfflineRepository: ChatDetailsOfflineRepository,
+    private val geminiRepository: GeminiRepository
 ) : ViewModel() {
 
-    private var selectedChatId = MutableStateFlow<Int?>(null)
-    private var input = MutableStateFlow<String>("")
-    private var isSending = MutableStateFlow<Boolean>(false)
+    private var selectedChatId = MutableStateFlow<Long?>(null)
+    private var input = MutableStateFlow("")
+    private var isSending = MutableStateFlow(false)
 
     init {
         viewModelScope.launch {
@@ -95,7 +95,7 @@ class ChatViewModel(
                 ChatMessageEntity(
                     chatId = selectedChatId.value!!,
                     positionInChat = 1,
-                    text = "Что хотели бы спросить?",
+                    text = "What would you like to ask?",
                     role = MessageRole.ASSISTANT,
                     status = MessageStatus.SENT
                 )
@@ -117,7 +117,7 @@ class ChatViewModel(
         }
     }
 
-    fun onChatClick(chatId: Int) {
+    fun onChatClick(chatId: Long) {
         selectedChatId.value = chatId
     }
 
@@ -125,16 +125,25 @@ class ChatViewModel(
         input.value = value
     }
 
+    private var lastUserInput = ""
+
     fun onSendQuery() {
         val text = input.value.trim()
         if(text.isBlank()) return
+        lastUserInput = text
 
         viewModelScope.launch {
             isSending.value = true
+            val position = uiState.value.messages.size.toLong() + 1
+            val assistantPosition = position + 1
 
             val chatId = selectedChatId.value ?: return@launch
             try {
-                val position = uiState.value.messages.size + 1
+                val isFirstUserMessage = uiState.value.messages.none { it.role == MessageRole.USER }
+                if (isFirstUserMessage) {
+                    val title = text.take(30).let { if (text.length > 30) "$it..." else it }
+                    chatDetailsOfflineRepository.updateChatTitle(chatId, title)
+                }
 
                 chatDetailsOfflineRepository.insertMessage(
                     ChatMessageEntity(
@@ -148,20 +157,18 @@ class ChatViewModel(
 
                 input.value = ""
 
-                val assistantPosition = position + 1
                 chatDetailsOfflineRepository.insertMessage(
                     ChatMessageEntity(
                         chatId = chatId,
                         positionInChat = assistantPosition,
-                        text = "Думаю над ответом...",
+                        text = "Thinking...",
                         role = MessageRole.ASSISTANT,
                         status = MessageStatus.SENDING
                     )
                 )
-                // IMPLEMENTATION OF AI RESPONSE
-                delay(5000)
 
-                val answer = "Это тестовый ответ от ИИ"
+                val answer = geminiRepository.sendMessage(chatId, text)
+                Log.d("ChatViewModel", "Answer: $answer")
 
                 chatDetailsOfflineRepository.updateMessage(
                     positionInChat = assistantPosition,
@@ -170,12 +177,10 @@ class ChatViewModel(
                 )
 
             } catch (e: Exception) {
-                val chatId = selectedChatId.value
-                val position = uiState.value.messages.size + 1
                 chatDetailsOfflineRepository.updateMessage(
-                    positionInChat = position,
+                    positionInChat = assistantPosition,
                     status = MessageStatus.ERROR,
-                    text = "Ошибка при отправке сообщений"
+                    text = "Error when sending messages"
                 )
             } finally {
                 isSending.value = false
@@ -187,11 +192,18 @@ class ChatViewModel(
         }
     }
 
+    fun onRetry() {
+        if (lastUserInput.isBlank()) return
+        input.value = lastUserInput
+        onSendQuery()
+    }
+
     companion object {
         val factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 ChatViewModel(
-                    agriStationApplication().container.chatDetailsOfflineRepository
+                    agriStationApplication().container.chatDetailsOfflineRepository,
+                    agriStationApplication().container.geminiRepository
                 )
             }
         }

@@ -14,19 +14,22 @@ import com.example.agristation1.data.chatDetails.ChatMessageEntity
 import com.example.agristation1.data.farmDetails.FarmDetailsDao
 import com.example.agristation1.data.fieldDetails.FieldDetails
 import com.example.agristation1.data.fieldDetails.FieldDetailsDao
-import com.example.agristation1.data.history.AirHumidity
-import com.example.agristation1.data.history.AirTemperature
-import com.example.agristation1.data.history.HistoryDao
-import com.example.agristation1.data.history.Lux
-import com.example.agristation1.data.history.SoilMoisture
-import com.example.agristation1.data.history.SoilTemperature
+import com.example.agristation1.data.fieldDetails.FieldPoints
+import com.example.agristation1.data.historyDetails.HistoryDetails
+import com.example.agristation1.data.historyDetails.HistoryDetailsDao
+import com.example.agristation1.data.sensorDetails.SensorDetails
+import com.example.agristation1.data.sensorDetails.SensorDetailsDao
 import com.example.agristation1.data.taskDetails.TaskDetails
 import com.example.agristation1.data.taskDetails.TaskDetailsDao
-import com.example.agristation1.data.taskNotes.TaskNotes
-import com.example.agristation1.data.taskNotes.TaskNotesDao
+import com.example.agristation1.data.userDetails.UserDetails
+import com.example.agristation1.data.userDetails.UserDetailsDao
+import com.example.agristation1.network.alertNetwork.AlertPendingOperation
+import com.example.agristation1.network.alertNetwork.AlertPendingOperationDao
+import com.example.agristation1.network.taskNetwork.TaskPendingOperation
+import com.example.agristation1.network.taskNetwork.TaskPendingOperationDao
 
 @Database(
-    entities = [FarmDetails::class, FieldDetails::class, AlertDetails::class, TaskDetails::class, TaskNotes::class, ChatEntity::class, ChatMessageEntity::class, SoilMoisture::class, SoilTemperature::class, AirTemperature::class, AirHumidity::class, Lux::class],
+    entities = [FarmDetails::class, FieldDetails::class, FieldPoints::class,AlertDetails::class, SensorDetails::class, TaskDetails::class, ChatEntity::class, ChatMessageEntity::class, HistoryDetails::class, AlertPendingOperation::class, TaskPendingOperation::class, UserDetails::class],
     version = 1
 )
 @TypeConverters(
@@ -35,9 +38,14 @@ import com.example.agristation1.data.taskNotes.TaskNotesDao
     TaskConverters::class,
     TimeConverters::class,
     MessageConverters::class,
-    HistoryConverters::class
+    PendingOperationConverters::class,
+    SensorConverters::class
 )
 abstract class AgriStationDatabase : RoomDatabase() {
+
+    abstract fun alertPendingOperationDao(): AlertPendingOperationDao
+
+    abstract fun taskPendingOperationDao(): TaskPendingOperationDao
 
     abstract fun farmDetailsDao(): FarmDetailsDao
 
@@ -47,26 +55,28 @@ abstract class AgriStationDatabase : RoomDatabase() {
 
     abstract fun taskDetailsDao(): TaskDetailsDao
 
-    abstract fun taskNotesDao(): TaskNotesDao
-
-    abstract fun historyDao(): HistoryDao
+    abstract fun historyDetailsDao(): HistoryDetailsDao
 
     abstract fun chatDetailsDao(): ChatDetailsDao
 
+    abstract fun sensorDetailsDao(): SensorDetailsDao
+
+    abstract fun userDetailsDao(): UserDetailsDao
+
     companion object {
         @Volatile
-        private var Instance: AgriStationDatabase? = null
+        private var INSTANCE: AgriStationDatabase? = null
 
         fun getDatabase(context: Context): AgriStationDatabase {
-            return Instance ?: synchronized(this) {
-                Room.databaseBuilder(
-                    context,
+            return INSTANCE  ?: synchronized(this) {
+                val instance = Room.databaseBuilder(
+                    context.applicationContext,
                     AgriStationDatabase::class.java,
                     "agri_station_database"
-                )
-                    .createFromAsset("database/agri_station_database.db")
-                    .build()
-                    .also { Instance = it }
+                ).build()
+
+                INSTANCE = instance
+                instance
             }
         }
     }

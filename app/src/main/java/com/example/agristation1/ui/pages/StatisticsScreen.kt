@@ -74,20 +74,20 @@ fun StatisticsMainScreen(
             onBothTemperatureFilter = { viewModel.onTemperatureFilterChange(TemperatureFilter.Both) },
             onSoilTemperatureFilter = { viewModel.onTemperatureFilterChange(TemperatureFilter.Soil) },
             onAirTemperatureFilter = { viewModel.onTemperatureFilterChange(TemperatureFilter.Air) },
-            onDayTemperatureFilter = { viewModel.onTemperaturePeriodFilterChange(PeriodFilter.Day) },
-            onWeekTemperatureFilter = { viewModel.onTemperaturePeriodFilterChange(PeriodFilter.Week) },
-            onMonthTemperatureFilter = { viewModel.onTemperaturePeriodFilterChange(PeriodFilter.Month) },
+            onDayTemperatureFilter = { viewModel.onTemperaturePeriodChange(PeriodFilter.Day) },
+            onWeekTemperatureFilter = { viewModel.onTemperaturePeriodChange(PeriodFilter.Week) },
+            onMonthTemperatureFilter = { viewModel.onTemperaturePeriodChange(PeriodFilter.Month) },
 
             onBothMoistureFilter = { viewModel.onMoistureFilterChange(MoistureFilter.Both) },
             onSoilMoistureFilter = { viewModel.onMoistureFilterChange(MoistureFilter.Soil) },
             onAirMoistureFilter = { viewModel.onMoistureFilterChange(MoistureFilter.Air) },
-            onDayMoistureFilter = { viewModel.onMoisturePeriodFilterChange(PeriodFilter.Day) },
-            onWeekMoistureFilter = { viewModel.onMoisturePeriodFilterChange(PeriodFilter.Week) },
-            onMonthMoistureFilter = { viewModel.onMoisturePeriodFilterChange(PeriodFilter.Month) },
+            onDayMoistureFilter = { viewModel.onMoisturePeriodChange(PeriodFilter.Day) },
+            onWeekMoistureFilter = { viewModel.onMoisturePeriodChange(PeriodFilter.Week) },
+            onMonthMoistureFilter = { viewModel.onMoisturePeriodChange(PeriodFilter.Month) },
 
-            onDayLuxFilter = { viewModel.onLuxPeriodFilterChange(PeriodFilter.Day) },
-            onWeekLuxFilter = { viewModel.onLuxPeriodFilterChange(PeriodFilter.Week) },
-            onMonthLuxFilter = { viewModel.onLuxPeriodFilterChange(PeriodFilter.Month) }
+            onDayLuxFilter = { viewModel.onLuxPeriodChange(PeriodFilter.Day) },
+            onWeekLuxFilter = { viewModel.onLuxPeriodChange(PeriodFilter.Week) },
+            onMonthLuxFilter = { viewModel.onLuxPeriodChange(PeriodFilter.Month) }
         )
     }
 }
@@ -169,14 +169,14 @@ fun StatisticsScreen(
     ) {
         val soilLine = Line(
             label = "Soil Temperature",
-            values = uiState.temperatureChart.soilData.mapNotNull { it.value?.toDouble() ?: null },
+            values = uiState.temperatureChart.soilData,
             color = SolidColor(Color.Green),
             curvedEdges = true,
             drawStyle = DrawStyle.Stroke(width = 4.dp)
         )
         val airLine = Line(
             label = "Air Temperature",
-            values = uiState.temperatureChart.airData.mapNotNull { it.value?.toDouble() ?: null },
+            values = uiState.temperatureChart.airData,
             color = SolidColor(Color.Blue),
             curvedEdges = true
         )
@@ -194,14 +194,14 @@ fun StatisticsScreen(
     ) {
         val soilLine = Line(
             label = "Soil Moisture",
-            values = uiState.moistureChart.soilData.mapNotNull { it.value?.toDouble() ?: null },
+            values = uiState.moistureChart.soilData,
             color = SolidColor(Color.Green),
             curvedEdges = true,
             drawStyle = DrawStyle.Stroke(width = 4.dp)
         )
         val airLine = Line(
             label = "Air Humidity",
-            values = uiState.moistureChart.airData.mapNotNull { it.value?.toDouble() ?: null },
+            values = uiState.moistureChart.airData,
             color = SolidColor(Color.Blue),
             curvedEdges = true
         )
@@ -219,7 +219,7 @@ fun StatisticsScreen(
         listOf(
             Line(
                 label = "Light Intensity",
-                values = uiState.luxChart.data.mapNotNull { it.value?.toDouble() ?: null },
+                values = uiState.luxChart.data,
                 color = SolidColor(Color.Green),
                 curvedEdges = true,
                 drawStyle = DrawStyle.Stroke(width = 4.dp)

@@ -8,7 +8,6 @@ import androidx.room.PrimaryKey
 import com.example.agristation1.data.alertDetails.AlertDetails
 import com.example.agristation1.data.fieldDetails.FieldDetails
 import java.time.Instant
-import java.time.LocalDate
 
 @Entity(
     tableName = "task_details",
@@ -24,7 +23,7 @@ import java.time.LocalDate
             entity = AlertDetails::class,
             parentColumns = ["id"],
             childColumns = ["alert_id"],
-            onDelete = ForeignKey.Companion.CASCADE,
+            onDelete = ForeignKey.Companion.NO_ACTION,
             onUpdate = ForeignKey.Companion.NO_ACTION
         )
     ],
@@ -35,22 +34,26 @@ import java.time.LocalDate
 )
 data class TaskDetails(
     @PrimaryKey(autoGenerate = true)
-    val id: Int = 0,
+    val id: Long = 0,
 
     val title: String?,
     val description: String?,
+    val notes: String?,
 
     @ColumnInfo(name = "field_id")
-    val fieldId: Int,
+    val fieldId: Long,
     @ColumnInfo(name = "alert_id")
-    val alertId: Int?,
+    val alertId: Long?,
 
     @ColumnInfo(name = "time_due")
-    val timeDue: LocalDate?,
+    val timeDue: Instant?,
     @ColumnInfo(name = "time_created")
     val timeCreated: Instant,
 
     val status: TaskStatus,
     val priority: TaskPriority,
-    val type: TaskType
+    val type: TaskType,
+
+    @ColumnInfo(name = "alert_deleted")
+    val alertDeleted: Boolean = false
 )

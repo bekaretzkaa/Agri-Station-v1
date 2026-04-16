@@ -10,18 +10,18 @@ sealed class AppRoute(val route: String) {
     data object Chat : AppRoute("chat")
 
     data object FieldDetails : AppRoute("field_details/{fieldId}") {
-        fun createRoute(fieldId: Int) = "field_details/$fieldId"
+        fun createRoute(fieldId: Long) = "field_details/$fieldId"
     }
 
     data object AlertDetails : AppRoute("alert_details/{alertId}") {
-        fun createRoute(alertId: Int) = "alert_details/$alertId"
+        fun createRoute(alertId: Long) = "alert_details/$alertId"
     }
 
     data object TaskDetails : AppRoute("task_details/{taskId}") {
-        fun createRoute(taskId: Int) = "task_details/$taskId"
+        fun createRoute(taskId: Long) = "task_details/$taskId"
     }
 
     data object Statistics : AppRoute("statistics/{fieldId}") {
-        fun createRoute(fieldId: Int) = "statistics/$fieldId"
+        fun createRoute(fieldId: Long) = "statistics/$fieldId"
     }
 }

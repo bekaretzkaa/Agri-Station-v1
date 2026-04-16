@@ -1,9 +1,8 @@
 package com.example.agristation1.ui.pages
 
-import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,13 +12,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -32,14 +29,11 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
-import androidx.compose.material.icons.filled.Start
 import androidx.compose.material.icons.outlined.AccessTime
-import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.CalendarToday
 import androidx.compose.material.icons.outlined.Cancel
-import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material.icons.outlined.CheckCircleOutline
+import androidx.compose.material.icons.outlined.CheckBox
 import androidx.compose.material.icons.outlined.Circle
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
@@ -49,9 +43,7 @@ import androidx.compose.material.icons.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.Place
 import androidx.compose.material.icons.outlined.Save
 import androidx.compose.material.icons.outlined.Send
-import androidx.compose.material.icons.outlined.Thermostat
 import androidx.compose.material.icons.outlined.WarningAmber
-import androidx.compose.material.icons.outlined.WaterDrop
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -89,9 +81,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.agristation1.data.AppColors
 import com.example.agristation1.data.alertDetails.toContainerColor
 import com.example.agristation1.data.alertDetails.toContentColor
-import com.example.agristation1.data.alertDetails.toStringField
 import com.example.agristation1.data.taskDetails.TaskDetails
-import com.example.agristation1.data.taskNotes.TaskNotes
 import com.example.agristation1.data.formatRelativeTime
 import com.example.agristation1.data.taskDetails.TaskPriority
 import com.example.agristation1.data.taskDetails.TaskStatus
@@ -100,17 +90,14 @@ import com.example.agristation1.data.taskDetails.toBorderColor
 import com.example.agristation1.data.taskDetails.toContainerColor
 import com.example.agristation1.data.taskDetails.toContentColor
 import com.example.agristation1.data.taskDetails.toStringField
-import com.example.agristation1.data.toUiDueDate
 import com.example.agristation1.fakedata.FakeAlertData
 import com.example.agristation1.fakedata.FakeFieldData
 import com.example.agristation1.fakedata.FakeTaskData
-import com.example.agristation1.fakedata.FakeTaskNotesData
 import com.example.agristation1.ui.viewmodel.TaskDetailsUiState
 import com.example.agristation1.ui.viewmodel.TaskDetailsViewModel
-import com.example.agristation1.ui.viewmodel.TaskFilter
 import com.example.agristation1.ui.viewmodel.TaskFormState
-import com.example.agristation1.ui.viewmodel.TaskUiState
 import com.example.compose.AppTheme
+import java.time.Instant
 import java.time.LocalDate
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -118,68 +105,41 @@ import java.time.LocalDate
 fun TaskDetailsMainScreen(
     onBack: () -> Unit = {},
     viewModel: TaskDetailsViewModel,
-    onOpenFieldDetails: (Int) -> Unit = {},
-    onOpenAlertDetails: (Int) -> Unit = {},
-    onDeleteTask: (Int) -> Unit = {}
+    onOpenFieldDetails: (Long) -> Unit = {},
+    onOpenAlertDetails: (Long) -> Unit = {},
+    onDeleteTask: (Long) -> Unit = {}
 ) {
     val uiState: TaskDetailsUiState by viewModel.uiState.collectAsStateWithLifecycle()
     val taskDetails = uiState.taskDetails ?: return
 
     val sheetState = rememberModalBottomSheetState()
-    var showBottomSheetAddNote by remember { mutableStateOf(false) }
-    var showBottomSheetUpdateNote by remember { mutableStateOf(false) }
-    var showAlertSheetDeleteNote by remember { mutableStateOf(false) }
+    var showTaskNoteUpdate by remember { mutableStateOf(false) }
     var showAlertSheetDeleteTaskDetails by remember { mutableStateOf(false) }
-
     var showBottomSheetUpdateTask by remember { mutableStateOf(false) }
 
-    var note by remember { mutableStateOf("") }
-    var noteId by remember { mutableStateOf(0) }
-
-    if (showBottomSheetAddNote) {
+    if (showTaskNoteUpdate) {
         ModalBottomSheet(
-            onDismissRequest = { showBottomSheetAddNote = false },
-            sheetState = sheetState
-        ) {
-            AddNoteSheet(
-                onDismiss = { showBottomSheetAddNote = false },
-                onAddNote = {
-                    viewModel.insertTaskNote(taskDetails.id, it)
-                    showBottomSheetAddNote = false
-                }
-            )
-        }
-    } else if(showBottomSheetUpdateNote) {
-        ModalBottomSheet(
-            onDismissRequest = { showBottomSheetUpdateNote = false },
-            sheetState = sheetState
+            onDismissRequest = { showTaskNoteUpdate = false },
+            sheetState = sheetState,
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
         ) {
             UpdateNoteSheet(
-                onDismiss = { showBottomSheetUpdateNote = false },
+                onDismiss = { showTaskNoteUpdate = false },
                 onUpdateNote = {
-                    viewModel.updateTaskNote(noteId, it)
-                    showBottomSheetUpdateNote = false
+                    viewModel.onUpdateNote(it)
+                    showTaskNoteUpdate = false
                 },
-                taskNote = note
+                taskNote = taskDetails.notes ?: ""
             )
         }
-    } else if(showAlertSheetDeleteNote) {
-        DeleteNoteSheet(
-            onDismiss = { showAlertSheetDeleteNote = false },
-            onDeleteNote = {
-                viewModel.deleteTaskNote(noteId)
-                showAlertSheetDeleteNote = false
-            }
-        )
-    } else if(showAlertSheetDeleteTaskDetails) {
+    } else if (showAlertSheetDeleteTaskDetails) {
         DeleteTaskDetailsSheet(
             onDismiss = { showAlertSheetDeleteTaskDetails = false },
             onDeleteTask = {
                 onDeleteTask(taskDetails.id)
                 showAlertSheetDeleteTaskDetails = false
-            }
-        )
-    } else if(showBottomSheetUpdateTask) {
+            })
+    } else if (showBottomSheetUpdateTask) {
         ModalBottomSheet(
             onDismissRequest = { showBottomSheetUpdateTask = false },
             sheetState = sheetState,
@@ -195,52 +155,41 @@ fun TaskDetailsMainScreen(
                 onDueDateChange = viewModel::onDateChange,
                 onDismiss = { showBottomSheetUpdateTask = false },
                 onSaveTask = {
-                    viewModel.updateTask()
+                    viewModel.updateTask(taskDetails.id)
                     showBottomSheetUpdateTask = false
                 },
                 onTypeChange = {
                     viewModel.onTypeChange(it)
-                }
-            )
+                })
         }
     }
 
     Column {
         TaskDetailsTopBar(
-            taskDetails = taskDetails,
-            onBack = onBack
+            taskDetails = taskDetails, onBack = onBack
         )
         TaskDetailsScreen(
             taskDetails = taskDetails,
             uiState = uiState,
             onOpenFieldDetails = onOpenFieldDetails,
             onOpenAlertDetails = onOpenAlertDetails,
-            onMarkAsCompleted = { viewModel.markTaskAsCompleted(taskDetails.id) },
+            onMarkAsCompleted = { viewModel.onTaskStatusChange(taskDetails.id, TaskStatus.COMPLETED) },
             onDeleteTaskDetails = { showAlertSheetDeleteTaskDetails = true },
-            onAddNote = { showBottomSheetAddNote = true },
-            onUnMarkAsCompleted = { viewModel.unMarkTaskAsCompleted(taskDetails.id) },
-            onDeleteTaskNote = {
-                noteId = it
-                showAlertSheetDeleteNote = true
-                               },
-            onUpdateTaskNote = {
-                note = it.note
-                noteId = it.id
-                showBottomSheetUpdateNote = true
-            },
+            onUnMarkAsCompleted = { viewModel.onTaskStatusChange(taskDetails.id, TaskStatus.OPEN) },
             onEditTask = {
                 viewModel.initializeState()
                 showBottomSheetUpdateTask = true
             },
-            onStartTask = { viewModel.markTaskAsStarted(taskDetails.id) }
-        )
+            onStartTask = { viewModel.onTaskStatusChange(taskDetails.id, TaskStatus.IN_PROGRESS) },
+            onEditNote = {
+                showTaskNoteUpdate = true
+            })
     }
 }
 
 @Composable
 fun TaskDetailsTopBar(
-    taskDetails: TaskDetails,
-    onBack: () -> Unit
+    taskDetails: TaskDetails, onBack: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -259,8 +208,7 @@ fun TaskDetailsTopBar(
                 )
             }
             Text(
-                text = "Back",
-                style = MaterialTheme.typography.titleLarge
+                text = "Back", style = MaterialTheme.typography.titleLarge
             )
         }
         Spacer(modifier = Modifier.height(8.dp))
@@ -272,9 +220,7 @@ fun TaskDetailsTopBar(
                     TaskStatus.OPEN -> Icons.Outlined.Circle
                     TaskStatus.OVERDUE -> Icons.Outlined.ErrorOutline
                     TaskStatus.CANCELLED -> Icons.Outlined.Cancel
-                },
-                contentDescription = null,
-                tint = when (taskDetails.status) {
+                }, contentDescription = null, tint = when (taskDetails.status) {
                     TaskStatus.COMPLETED -> AppColors.green.c600
                     TaskStatus.IN_PROGRESS -> AppColors.blue.c600
                     TaskStatus.CANCELLED -> AppColors.gray.c600
@@ -286,25 +232,7 @@ fun TaskDetailsTopBar(
             Column {
                 Text(
                     text = taskDetails.title ?: "",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = if (taskDetails.status == TaskStatus.COMPLETED)
-                        Color.Gray
-                    else
-                        Color.Black,
-                    modifier = if (taskDetails.status == TaskStatus.COMPLETED)
-                        Modifier.drawBehind {
-                            val strokeWidth = 2.dp.toPx()
-                            val y = size.height / 2
-
-                            drawLine(
-                                color = Color.Black,
-                                start = Offset(0f, y),
-                                end = Offset(size.width, y),
-                                strokeWidth = strokeWidth
-                            )
-                        }
-                    else
-                        Modifier
+                    style = MaterialTheme.typography.titleLarge
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Row {
@@ -346,16 +274,14 @@ fun TaskDetailsTopBar(
 fun TaskDetailsScreen(
     taskDetails: TaskDetails,
     uiState: TaskDetailsUiState,
-    onOpenFieldDetails: (Int) -> Unit,
-    onOpenAlertDetails: (Int) -> Unit,
+    onOpenFieldDetails: (Long) -> Unit,
+    onOpenAlertDetails: (Long) -> Unit,
     onMarkAsCompleted: () -> Unit,
     onDeleteTaskDetails: () -> Unit,
-    onAddNote: () -> Unit,
     onUnMarkAsCompleted: () -> Unit,
-    onDeleteTaskNote: (Int) -> Unit,
-    onUpdateTaskNote: (TaskNotes) -> Unit,
     onEditTask: () -> Unit,
-    onStartTask: () -> Unit
+    onStartTask: () -> Unit,
+    onEditNote: () -> Unit
 ) {
     LazyColumn(
         modifier = Modifier
@@ -399,10 +325,7 @@ fun TaskDetailsScreen(
 
         item {
             TaskDetailsNotes(
-                uiState = uiState,
-                onAddNote = onAddNote,
-                onDeleteTaskNote = onDeleteTaskNote,
-                onUpdateTaskNote = onUpdateTaskNote
+                uiState = uiState, onEditNote = onEditNote
             )
             Spacer(modifier = Modifier.height(16.dp))
         }
@@ -413,8 +336,8 @@ fun TaskDetailsScreen(
 fun TaskDetailsInformation(
     taskDetails: TaskDetails,
     uiState: TaskDetailsUiState,
-    onOpenFieldDetails: (Int) -> Unit,
-    onOpenAlertDetails: (Int) -> Unit
+    onOpenFieldDetails: (Long) -> Unit,
+    onOpenAlertDetails: (Long) -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -435,7 +358,7 @@ fun TaskDetailsInformation(
                     style = MaterialTheme.typography.titleLarge,
                 )
                 Spacer(modifier = Modifier.weight(1f))
-                if(taskDetails.type != TaskType.UNKNOWN) {
+                if (taskDetails.type != TaskType.UNKNOWN) {
                     Text(
                         text = "Type: ${taskDetails.type.toStringField()}",
                         style = MaterialTheme.typography.bodyLarge
@@ -443,8 +366,7 @@ fun TaskDetailsInformation(
                 }
             }
             HorizontalDivider(
-                thickness = 1.dp,
-                color = Color.LightGray
+                thickness = 1.dp, color = Color.LightGray
             )
             Column(
                 modifier = Modifier.padding(12.dp)
@@ -464,8 +386,7 @@ fun TaskDetailsInformation(
                 ) {
                     Column {
                         Text(
-                            text = "Created",
-                            style = MaterialTheme.typography.bodyLarge
+                            text = "Created", style = MaterialTheme.typography.bodyLarge
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -484,8 +405,7 @@ fun TaskDetailsInformation(
                     Spacer(modifier = Modifier.weight(1f))
                     Column {
                         Text(
-                            text = "Due Date",
-                            style = MaterialTheme.typography.bodyLarge
+                            text = "Due Date", style = MaterialTheme.typography.bodyLarge
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -496,7 +416,7 @@ fun TaskDetailsInformation(
                             )
                             Spacer(modifier = Modifier.width(2.dp))
                             Text(
-                                text = taskDetails.timeDue?.toUiDueDate() ?: "No date",
+                                text = formatRelativeTime(taskDetails.timeDue),
                                 style = MaterialTheme.typography.bodyLarge,
                             )
                         }
@@ -511,8 +431,7 @@ fun TaskDetailsInformation(
                 Spacer(modifier = Modifier.height(4.dp))
                 Card(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
-                    onClick = { onOpenFieldDetails(taskDetails.fieldId) }
-                ) {
+                    onClick = { onOpenFieldDetails(taskDetails.fieldId) }) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.padding(12.dp)
@@ -545,8 +464,7 @@ fun TaskDetailsInformation(
                     Spacer(modifier = Modifier.height(4.dp))
                     Card(
                         colors = CardDefaults.cardColors(containerColor = uiState.alert.severity.toContainerColor()),
-                        onClick = { onOpenAlertDetails(uiState.alert.id) }
-                    ) {
+                        onClick = { onOpenAlertDetails(uiState.alert.id) }) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.padding(12.dp)
@@ -585,7 +503,7 @@ fun TaskDetailsButtons(
     onEditTask: () -> Unit,
     onStartTask: () -> Unit
 ) {
-    if(taskDetails.status == TaskStatus.OPEN) {
+    if (taskDetails.status == TaskStatus.OPEN) {
         Card(
             colors = CardDefaults.cardColors(containerColor = AppColors.blue.c200),
             onClick = onStartTask,
@@ -668,9 +586,7 @@ fun TaskDetailsButtons(
 
 @Composable
 fun TaskDetailsOtherButtons(
-    taskDetails: TaskDetails,
-    onDeleteTaskDetails: () -> Unit,
-    onUnMarkAsCompleted: () -> Unit
+    taskDetails: TaskDetails, onDeleteTaskDetails: () -> Unit, onUnMarkAsCompleted: () -> Unit
 ) {
     if (taskDetails.status == TaskStatus.COMPLETED) {
         Spacer(modifier = Modifier.height(12.dp))
@@ -703,8 +619,7 @@ fun TaskDetailsOtherButtons(
     Spacer(modifier = Modifier.height(12.dp))
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
-        onClick = { onDeleteTaskDetails() }
-    ) {
+        onClick = { onDeleteTaskDetails() }) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
@@ -745,8 +660,7 @@ fun TaskDetailsCompleted() {
             Spacer(modifier = Modifier.width(8.dp))
             Column {
                 Text(
-                    text = "Task Completed",
-                    style = MaterialTheme.typography.titleMedium
+                    text = "Task Completed", style = MaterialTheme.typography.titleMedium
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
@@ -758,13 +672,10 @@ fun TaskDetailsCompleted() {
     }
 }
 
-@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun TaskDetailsNotes(
     uiState: TaskDetailsUiState,
-    onAddNote: () -> Unit,
-    onDeleteTaskNote: (Int) -> Unit,
-    onUpdateTaskNote: (TaskNotes) -> Unit
+    onEditNote: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -772,256 +683,40 @@ fun TaskDetailsNotes(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
         border = BorderStroke(1.dp, Color.LightGray)
     ) {
-        Column {
+        Column(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 20.dp)
+        ) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp)
-                    .height(40.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Notes & Comments",
+                    text = "Task Note",
                     style = MaterialTheme.typography.titleLarge,
                 )
                 Spacer(modifier = Modifier.weight(1f))
-                Box(
-                    modifier = Modifier
-                        .size(30.dp)
-                        .background(
-                            color = AppColors.blue.c200,
-                            shape = CircleShape
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = uiState.notes.size.toString(),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = AppColors.blue.c800
-                    )
-                }
-
-            }
-            HorizontalDivider(
-                thickness = 1.dp,
-                color = Color.LightGray
-            )
-            if (uiState.notes.isNotEmpty()) {
-                LazyColumn(
-                    modifier = Modifier
-                        .padding(12.dp)
-                        .fillMaxWidth()
-                        .heightIn(max = 300.dp)
-                ) {
-                    items(uiState.notes) { note ->
-                        TaskDetailsNotesCard(
-                            taskNote = note,
-                            onDeleteTaskNote = onDeleteTaskNote,
-                            onUpdateTaskNote = onUpdateTaskNote
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                    }
-                }
-            } else {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(12.dp)
-                        .height(150.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "No notes yet",
-                        style = MaterialTheme.typography.bodyLarge,
-                    )
-                }
-            }
-            Button(
-                modifier = Modifier
-                    .padding(start = 12.dp, end = 12.dp, bottom = 12.dp)
-                    .fillMaxWidth()
-                    .height(50.dp),
-                shape = RoundedCornerShape(12.dp),
-                onClick = onAddNote
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
+                IconButton(
+                    onClick = onEditNote,
+                    modifier = Modifier.size(24.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Outlined.Add,
-                        contentDescription = null,
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "Add Note",
-                        style = MaterialTheme.typography.titleMedium,
+                        imageVector = Icons.Outlined.Edit, contentDescription = null
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(4.dp))
-        }
-    }
-}
-
-@Composable
-fun TaskDetailsNotesCard(
-    taskNote: TaskNotes,
-    onDeleteTaskNote: (Int) -> Unit,
-    onUpdateTaskNote: (TaskNotes) -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
-    ) {
-        Row(
-            modifier = Modifier.padding(12.dp)
-        ) {
-            Spacer(modifier = Modifier.width(8.dp))
-            Column {
+            Spacer(modifier = Modifier.height(12.dp))
+            Column(
+                modifier = Modifier
+                    .border(BorderStroke(1.dp, Color.LightGray))
+                    .fillMaxWidth()
+            ) {
                 Text(
-                    text = taskNote.note,
-                    style = MaterialTheme.typography.bodyLarge
-                )
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = formatRelativeTime(taskNote.createdAt),
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                    Spacer(modifier = Modifier.weight(1f))
-                    IconButton(
-                        modifier = Modifier.size(26.dp),
-                        onClick = { onUpdateTaskNote(taskNote) }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Edit,
-                            contentDescription = null,
-                            tint = Color.Gray
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(4.dp))
-                    IconButton(
-                        modifier = Modifier.size(26.dp),
-                        onClick = { onDeleteTaskNote(taskNote.id) }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Delete,
-                            contentDescription = null,
-                            tint = Color.Gray
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun AddNoteSheet(
-    onDismiss: () -> Unit,
-    onAddNote: (String) -> Unit
-) {
-    var note by remember { mutableStateOf("") }
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(color = MaterialTheme.colorScheme.surfaceContainerLowest)
-    ) {
-        Row(
-            modifier = Modifier.padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Add Note",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold
-            )
-            Spacer(modifier = Modifier.weight(1f))
-            IconButton(
-                onClick = onDismiss
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = null,
+                    text = if (uiState.taskDetails?.notes.isNullOrBlank()) "Type your note or comment here..." else uiState.taskDetails.notes,
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier
+                        .padding(12.dp)
+                        .height(200.dp)
                 )
             }
-        }
-        HorizontalDivider(
-            thickness = 1.dp,
-            color = Color.LightGray
-        )
-        Column(
-            modifier = Modifier.padding(12.dp)
-        ) {
-            OutlinedTextField(
-                value = note,
-                onValueChange = { note = it },
-                label = { Text("Type your note or comment here...") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(200.dp),
-                shape = RoundedCornerShape(12.dp)
-            )
-        }
-        HorizontalDivider(
-            thickness = 1.dp,
-            color = Color.LightGray
-        )
-        Column(
-            modifier = Modifier.padding(12.dp)
-        ) {
-            Button(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-                shape = RoundedCornerShape(12.dp),
-                onClick = { onAddNote(note) },
-                enabled = note.isNotBlank()
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Send,
-                        contentDescription = null,
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Post Note",
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            Button(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-                shape = RoundedCornerShape(12.dp),
-                onClick = onDismiss,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                    contentColor = MaterialTheme.colorScheme.primary
-                )
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        text = "Cancel",
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
@@ -1040,8 +735,7 @@ fun UpdateNoteSheet(
             .background(color = MaterialTheme.colorScheme.surfaceContainerLowest)
     ) {
         Row(
-            modifier = Modifier.padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = "Edit Note",
@@ -1059,8 +753,7 @@ fun UpdateNoteSheet(
             }
         }
         HorizontalDivider(
-            thickness = 1.dp,
-            color = Color.LightGray
+            thickness = 1.dp, color = Color.LightGray
         )
         Column(
             modifier = Modifier.padding(12.dp)
@@ -1076,8 +769,7 @@ fun UpdateNoteSheet(
             )
         }
         HorizontalDivider(
-            thickness = 1.dp,
-            color = Color.LightGray
+            thickness = 1.dp, color = Color.LightGray
         )
         Column(
             modifier = Modifier.padding(12.dp)
@@ -1135,138 +827,8 @@ fun UpdateNoteSheet(
 }
 
 @Composable
-fun DeleteNoteSheet(
-    onDismiss: () -> Unit,
-    onDeleteNote: () -> Unit
-) {
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(
-            usePlatformDefaultWidth = false
-        ),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth(0.9f).background(
-                    color = MaterialTheme.colorScheme.surfaceContainerLowest,
-                    shape = RoundedCornerShape(12.dp)
-                ),
-        ) {
-            Row(
-                modifier = Modifier.padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Delete Note",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Spacer(modifier = Modifier.weight(1f))
-                IconButton(
-                    onClick = onDismiss
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = null,
-                    )
-                }
-            }
-            HorizontalDivider(
-                thickness = 1.dp,
-                color = Color.LightGray
-            )
-            Column(
-                modifier = Modifier.padding(vertical = 12.dp, horizontal = 20.dp).height(100.dp),
-                verticalArrangement = Arrangement.Center
-            ) {
-                Row(horizontalArrangement = Arrangement.Center) {
-                    Box(
-                        modifier = Modifier.background(
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.errorContainer
-                        ).size(50.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.WarningAmber,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onErrorContainer
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        text = "Are you sure you want to delete this note? This action cannot be undone.",
-                        style = MaterialTheme.typography.bodyLarge,
-                    )
-                }
-            }
-            HorizontalDivider(
-                thickness = 1.dp,
-                color = Color.LightGray
-            )
-            Column(
-                modifier = Modifier.padding(12.dp)
-            ) {
-                Button(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    onClick = onDeleteNote,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer,
-                        contentColor = MaterialTheme.colorScheme.onErrorContainer
-                    )
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Delete,
-                            contentDescription = null,
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Delete",
-                            style = MaterialTheme.typography.titleMedium,
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                Button(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    onClick = onDismiss,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                        contentColor = MaterialTheme.colorScheme.primary
-                    )
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Text(
-                            text = "Cancel",
-                            style = MaterialTheme.typography.titleMedium,
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-            }
-        }
-    }
-}
-
-@Composable
 fun DeleteTaskDetailsSheet(
-    onDismiss: () -> Unit,
-    onDeleteTask: () -> Unit
+    onDismiss: () -> Unit, onDeleteTask: () -> Unit
 ) {
     Dialog(
         onDismissRequest = onDismiss,
@@ -1276,14 +838,14 @@ fun DeleteTaskDetailsSheet(
     ) {
         Column(
             modifier = Modifier
-                .fillMaxWidth(0.9f).background(
+                .fillMaxWidth(0.9f)
+                .background(
                     color = MaterialTheme.colorScheme.surfaceContainerLowest,
                     shape = RoundedCornerShape(12.dp)
                 ),
         ) {
             Row(
-                modifier = Modifier.padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically
+                modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     text = "Delete Task",
@@ -1301,20 +863,22 @@ fun DeleteTaskDetailsSheet(
                 }
             }
             HorizontalDivider(
-                thickness = 1.dp,
-                color = Color.LightGray
+                thickness = 1.dp, color = Color.LightGray
             )
             Column(
-                modifier = Modifier.padding(vertical = 12.dp, horizontal = 20.dp).height(100.dp),
+                modifier = Modifier
+                    .padding(vertical = 12.dp, horizontal = 20.dp)
+                    .height(100.dp),
                 verticalArrangement = Arrangement.Center
             ) {
                 Row(horizontalArrangement = Arrangement.Center) {
                     Box(
-                        modifier = Modifier.background(
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.errorContainer
-                        ).size(50.dp),
-                        contentAlignment = Alignment.Center
+                        modifier = Modifier
+                            .background(
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.errorContainer
+                            )
+                            .size(50.dp), contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.WarningAmber,
@@ -1330,8 +894,7 @@ fun DeleteTaskDetailsSheet(
                 }
             }
             HorizontalDivider(
-                thickness = 1.dp,
-                color = Color.LightGray
+                thickness = 1.dp, color = Color.LightGray
             )
             Column(
                 modifier = Modifier.padding(12.dp)
@@ -1399,9 +962,9 @@ fun UpdateTaskSheet(
     onDismiss: () -> Unit,
     onTitleChange: (String) -> Unit,
     onDescriptionChange: (String) -> Unit,
-    onFieldChange: (Int) -> Unit,
+    onFieldChange: (Long) -> Unit,
     onPriorityChange: (TaskPriority) -> Unit,
-    onDueDateChange: (LocalDate) -> Unit,
+    onDueDateChange: (Instant) -> Unit,
     onSaveTask: () -> Unit,
     onTypeChange: (TaskType) -> Unit
 ) {
@@ -1412,8 +975,7 @@ fun UpdateTaskSheet(
             .background(color = MaterialTheme.colorScheme.surfaceContainerLowest),
     ) {
         Row(
-            modifier = Modifier.padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = "Edit Task",
@@ -1431,16 +993,16 @@ fun UpdateTaskSheet(
             }
         }
         HorizontalDivider(
-            thickness = 1.dp,
-            color = Color.LightGray
+            thickness = 1.dp, color = Color.LightGray
         )
-        if(uiState.taskDetails?.alertId != null) {
+        if (uiState.taskDetails?.alertId != null) {
             Card(
-                modifier = Modifier.padding(12.dp).fillMaxWidth(),
+                modifier = Modifier
+                    .padding(12.dp)
+                    .fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = AppColors.red.c100,
-                    contentColor = AppColors.red.c800
+                    containerColor = AppColors.red.c100, contentColor = AppColors.red.c800
                 )
             ) {
                 Row(
@@ -1454,8 +1016,7 @@ fun UpdateTaskSheet(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Task created from alert",
-                        color = Color.Black
+                        text = "Task created from alert", color = Color.Black
                     )
                 }
             }
@@ -1472,8 +1033,7 @@ fun UpdateTaskSheet(
                 value = formState.title ?: "",
                 onValueChange = { onTitleChange(it) },
                 label = { Text("Enter task title") },
-                modifier = Modifier
-                    .fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 singleLine = true
             )
@@ -1511,20 +1071,22 @@ fun UpdateTaskSheet(
                 )
             }
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 OutlinedButton(
                     onClick = { onPriorityChange(TaskPriority.HIGH) },
                     shape = RoundedCornerShape(12.dp),
-                    colors = if(formState.priority == TaskPriority.HIGH) ButtonDefaults.buttonColors(
+                    colors = if (formState.priority == TaskPriority.HIGH) ButtonDefaults.buttonColors(
                         containerColor = formState.priority.toContainerColor(),
                         contentColor = formState.priority.toContentColor(),
                     ) else ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.surfaceBright,
                         contentColor = MaterialTheme.colorScheme.onSurface
                     ),
-                    border = BorderStroke(1.dp, if(formState.priority == TaskPriority.HIGH) formState.priority.toBorderColor() else Color.LightGray),
+                    border = BorderStroke(
+                        1.dp,
+                        if (formState.priority == TaskPriority.HIGH) formState.priority.toBorderColor() else Color.LightGray
+                    ),
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -1543,14 +1105,17 @@ fun UpdateTaskSheet(
                 OutlinedButton(
                     onClick = { onPriorityChange(TaskPriority.MEDIUM) },
                     shape = RoundedCornerShape(12.dp),
-                    colors = if(formState.priority == TaskPriority.MEDIUM) ButtonDefaults.buttonColors(
+                    colors = if (formState.priority == TaskPriority.MEDIUM) ButtonDefaults.buttonColors(
                         containerColor = formState.priority.toContainerColor(),
                         contentColor = formState.priority.toContentColor(),
                     ) else ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.surfaceBright,
                         contentColor = MaterialTheme.colorScheme.onSurface
                     ),
-                    border = BorderStroke(1.dp, if(formState.priority == TaskPriority.MEDIUM) formState.priority.toBorderColor() else Color.LightGray),
+                    border = BorderStroke(
+                        1.dp,
+                        if (formState.priority == TaskPriority.MEDIUM) formState.priority.toBorderColor() else Color.LightGray
+                    ),
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -1569,14 +1134,17 @@ fun UpdateTaskSheet(
                 OutlinedButton(
                     onClick = { onPriorityChange(TaskPriority.LOW) },
                     shape = RoundedCornerShape(12.dp),
-                    colors = if(formState.priority == TaskPriority.LOW) ButtonDefaults.buttonColors(
+                    colors = if (formState.priority == TaskPriority.LOW) ButtonDefaults.buttonColors(
                         containerColor = formState.priority.toContainerColor(),
                         contentColor = formState.priority.toContentColor(),
                     ) else ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.surfaceBright,
                         contentColor = MaterialTheme.colorScheme.onSurface
                     ),
-                    border = BorderStroke(1.dp, if(formState.priority == TaskPriority.LOW) formState.priority.toBorderColor() else Color.LightGray),
+                    border = BorderStroke(
+                        1.dp,
+                        if (formState.priority == TaskPriority.LOW) formState.priority.toBorderColor() else Color.LightGray
+                    ),
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -1595,27 +1163,22 @@ fun UpdateTaskSheet(
             }
         }
 
-        if(uiState.taskDetails?.alertId == null) {
+        if (uiState.taskDetails?.alertId == null) {
             FieldDropDownUpdate(
-                uiState = uiState,
-                formState = formState,
-                onFieldChange = onFieldChange
+                uiState = uiState, formState = formState, onFieldChange = onFieldChange
             )
         }
 
         TaskTypeDropDown(
-            formState = formState,
-            onTypeChange = onTypeChange
+            formState = formState, onTypeChange = onTypeChange
         )
 
         DueDateFieldWithDialog(
-            formState = formState,
-            onDueDateChange = onDueDateChange
+            formState = formState, onDueDateChange = onDueDateChange
         )
 
         HorizontalDivider(
-            thickness = 1.dp,
-            color = Color.LightGray
+            thickness = 1.dp, color = Color.LightGray
         )
         Column(
             modifier = Modifier.padding(12.dp)
@@ -1626,7 +1189,7 @@ fun UpdateTaskSheet(
                     .height(50.dp),
                 shape = RoundedCornerShape(12.dp),
                 onClick = onSaveTask,
-                enabled = !(formState.title?.isBlank() ?: false || formState.description?.isBlank() ?: false || formState.fieldId == -1),
+                enabled = !(formState.title?.isBlank() ?: false || formState.description?.isBlank() ?: false || formState.fieldId == -1L),
             ) {
                 Row(
                     modifier = Modifier.fillMaxSize(),
@@ -1675,9 +1238,7 @@ fun UpdateTaskSheet(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FieldDropDownUpdate(
-    uiState: TaskDetailsUiState,
-    formState: TaskFormState,
-    onFieldChange: (Int) -> Unit
+    uiState: TaskDetailsUiState, formState: TaskFormState, onFieldChange: (Long) -> Unit
 ) {
     val options = uiState.fields
     var expanded by remember { mutableStateOf(false) }
@@ -1699,9 +1260,7 @@ fun FieldDropDownUpdate(
         }
 
         ExposedDropdownMenuBox(
-            expanded = expanded,
-            onExpandedChange = { expanded = !expanded }
-        ) {
+            expanded = expanded, onExpandedChange = { expanded = !expanded }) {
             OutlinedTextField(
                 value = selectedOption?.title ?: "",
                 onValueChange = {},
@@ -1716,18 +1275,13 @@ fun FieldDropDownUpdate(
             )
 
             ExposedDropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false }
-            ) {
+                expanded = expanded, onDismissRequest = { expanded = false }) {
                 options.forEach { option ->
-                    DropdownMenuItem(
-                        text = { Text(option.title ?: "") },
-                        onClick = {
-                            selectedOption = option
-                            onFieldChange(option.id)
-                            expanded = false
-                        }
-                    )
+                    DropdownMenuItem(text = { Text(option.title ?: "") }, onClick = {
+                        selectedOption = option
+                        onFieldChange(option.id)
+                        expanded = false
+                    })
                 }
             }
         }
@@ -1742,15 +1296,12 @@ fun TaskDetailsScreenPreview() {
         val uiState = TaskDetailsUiState(
             taskDetails = FakeTaskData.tasks[1],
             field = FakeFieldData.fields[2],
-            alert = FakeAlertData.alerts[2],
-            notes = FakeTaskNotesData.taskNotes.filter { it.taskId == 1 }
+            alert = FakeAlertData.alerts[2]
         )
 
         Column {
             TaskDetailsTopBar(
-                taskDetails = uiState.taskDetails!!,
-                onBack = {}
-            )
+                taskDetails = uiState.taskDetails!!, onBack = {})
             TaskDetailsScreen(
                 taskDetails = uiState.taskDetails,
                 uiState = uiState,
@@ -1758,48 +1309,11 @@ fun TaskDetailsScreenPreview() {
                 onOpenAlertDetails = {},
                 onMarkAsCompleted = {},
                 onDeleteTaskDetails = {},
-                onAddNote = {},
                 onUnMarkAsCompleted = {},
-                onDeleteTaskNote = {},
-                onUpdateTaskNote = {},
                 onEditTask = {},
-                onStartTask = {}
-            )
+                onStartTask = {},
+                onEditNote = {})
         }
-    }
-}
-
-@Preview
-@Composable
-fun AddNoteSheetPreview() {
-    AppTheme {
-        AddNoteSheet(
-            onDismiss = {},
-            onAddNote = {}
-        )
-    }
-}
-
-@Preview
-@Composable
-fun UpdateNoteSheetPreview() {
-    AppTheme {
-        UpdateNoteSheet(
-            onDismiss = {},
-            onUpdateNote = {},
-            taskNote = FakeTaskNotesData.taskNotes[0].note
-        )
-    }
-}
-
-@Preview
-@Composable
-fun DeleteNoteSheetPreview() {
-    AppTheme {
-        DeleteNoteSheet(
-            onDismiss = {},
-            onDeleteNote = {}
-        )
     }
 }
 
@@ -1807,10 +1321,7 @@ fun DeleteNoteSheetPreview() {
 @Composable
 fun DeleteTaskDetailsSheetPreview() {
     AppTheme {
-        DeleteTaskDetailsSheet(
-            onDismiss = {},
-            onDeleteTask = {}
-        )
+        DeleteTaskDetailsSheet(onDismiss = {}, onDeleteTask = {})
     }
 }
 
@@ -1823,7 +1334,6 @@ fun UpdateTaskSheetPreview() {
                 taskDetails = FakeTaskData.tasks[1],
                 field = FakeFieldData.fields[2],
                 alert = FakeAlertData.alerts[2],
-                notes = FakeTaskNotesData.taskNotes,
                 fields = FakeFieldData.fields
             ),
             formState = TaskFormState(),
@@ -1834,7 +1344,14 @@ fun UpdateTaskSheetPreview() {
             onDueDateChange = {},
             onDismiss = {},
             onSaveTask = {},
-            onTypeChange = {}
-        )
+            onTypeChange = {})
+    }
+}
+
+@Preview
+@Composable
+fun UpdateNoteSheetPreview() {
+    AppTheme {
+        UpdateNoteSheet(onDismiss = {}, taskNote = "This is a note", onUpdateNote = {})
     }
 }

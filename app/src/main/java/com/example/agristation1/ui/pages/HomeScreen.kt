@@ -36,11 +36,16 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -49,8 +54,20 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.agristation1.data.AppColors
+import com.example.agristation1.data.alertDetails.AlertDetails
+import com.example.agristation1.data.alertDetails.AlertSeverity
+import com.example.agristation1.data.alertDetails.toBorderColor
+import com.example.agristation1.data.alertDetails.toContainerColor
+import com.example.agristation1.data.alertDetails.toContentColor
+import com.example.agristation1.data.alertDetails.toStringField
 import com.example.agristation1.data.fieldDetails.FieldDetails
 import com.example.agristation1.data.fieldDetails.FieldHealth
+import com.example.agristation1.data.fieldDetails.toBorderColor
+import com.example.agristation1.data.fieldDetails.toContainerColor
+import com.example.agristation1.data.fieldDetails.toContentColor
+import com.example.agristation1.data.fieldDetails.toStringField
 import com.example.agristation1.data.formatRelativeTime
 import com.example.agristation1.fakedata.FakeAlertData
 import com.example.agristation1.fakedata.FakeFarmData
@@ -67,22 +84,47 @@ import java.util.Locale
 @Composable
 fun HomeMainScreen(
     viewModel: HomeViewModel,
-    onFieldClick: (Int) -> Unit = {},
+    onFieldClick: (Long) -> Unit = {},
+    onAlertClick: (Long) -> Unit = {},
     onOpenAllFields: () -> Unit = {},
     onChatClick: () -> Unit = {}
 ) {
     val uiState: HomeUiState by viewModel.uiState.collectAsState()
+    val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
+    val refreshError by viewModel.refreshError.collectAsStateWithLifecycle()
 
-    Column {
-        HomeTopBar(
-            uiState = uiState,
-            onChatClick = onChatClick
-        )
-        HomeScreen(
-            uiState = uiState,
-            onFieldClick = onFieldClick,
-            onOpenAllFields = onOpenAllFields,
-            getTotalAlerts = { uiState.alerts.count { alertDetails -> alertDetails.fieldId == it } }
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(refreshError) {
+        refreshError?.let { message ->
+            snackbarHostState.showSnackbar(message)
+            viewModel.clearRefreshError()
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column {
+            HomeTopBar(
+                uiState = uiState,
+                onChatClick = onChatClick
+            )
+            HomeScreen(
+                uiState = uiState,
+                onFieldClick = onFieldClick,
+                onAlertClick = onAlertClick,
+                onOpenAllFields = onOpenAllFields,
+                getTotalAlerts = { uiState.alerts.count { alertDetails -> alertDetails.fieldId == it }
+                    .toLong() },
+                isRefreshing = isRefreshing,
+                onRefresh = { viewModel.refresh() }
+            )
+        }
+
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(16.dp)
         )
     }
 }
@@ -109,7 +151,7 @@ fun HomeTopBar(
     ) {
         Column {
             Text(
-                text = uiState.farmDetails?.farmName ?: "",
+                text = uiState.farmDetails?.farmName ?: "No farm currently",
                 style = MaterialTheme.typography.titleLarge
             )
             Text(
@@ -117,11 +159,7 @@ fun HomeTopBar(
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Last updated: ${
-                    if (uiState.farmDetails?.lastUpdate != null) formatRelativeTime(
-                        uiState.farmDetails.lastUpdate
-                    ) else ""
-                }", style = MaterialTheme.typography.bodySmall
+                text = "Last updated: ${formatRelativeTime(uiState.lastSync)}", style = MaterialTheme.typography.bodySmall
             )
         }
 
@@ -146,37 +184,88 @@ fun HomeTopBar(
 @Composable
 fun HomeScreen(
     uiState: HomeUiState,
-    onFieldClick: (Int) -> Unit,
+    onFieldClick: (Long) -> Unit,
+    onAlertClick: (Long) -> Unit,
     onOpenAllFields: () -> Unit,
-    getTotalAlerts: (Int) -> Int,
-    modifier: Modifier = Modifier
+    getTotalAlerts: (Long) -> Long,
+    modifier: Modifier = Modifier,
+    isRefreshing: Boolean = false,
+    onRefresh: () -> Unit = {}
 ) {
-    LazyColumn(
-        modifier = modifier
-            .fillMaxSize()
-            .background(color = MaterialTheme.colorScheme.surface),
-        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 12.dp),
+    PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = onRefresh
     ) {
-        item {
-            OverallInformation(
-                uiState = uiState
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            ImmediateAttentionHeader()
-        }
-        itemsIndexed(uiState.attentionFields) { index, item ->
-            val isLast = index == uiState.attentionFields.lastIndex
-            ImmediateAttentionInformationCard(item, isLast, onFieldClick, getTotalAlerts(item.id))
-        }
-        item {
-            Spacer(modifier = Modifier.height(16.dp))
-            FieldsOverviewHeader(
-                onOpenAllFields = onOpenAllFields
-            )
-        }
-        itemsIndexed(uiState.fields) { index, item ->
-            val isLast = index == uiState.fields.lastIndex
-            FieldsOverviewInformationCard(item, isLast, onFieldClick, getTotalAlerts(item.id))
+        LazyColumn(
+            modifier = modifier
+                .fillMaxSize()
+                .background(color = MaterialTheme.colorScheme.surface),
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 12.dp),
+        ) {
+            if(uiState.fields.isNotEmpty()) {
+                item {
+                    OverallInformation(
+                        uiState = uiState
+                    )
+                    Spacer(modifier = Modifier.height(20.dp))
+                }
+
+                if(uiState.attentionFields.isNotEmpty()) {
+                    item {
+                        ImmediateAttentionHeader(
+                            text = "Requires Attention Fields",
+                            count = uiState.attentionFields.size
+                        )
+                    }
+                    itemsIndexed(uiState.attentionFields) { index, item ->
+                        val isLast = index == uiState.attentionFields.lastIndex
+                        ImmediateAttentionFieldsInformationCard(item, isLast, onFieldClick, getTotalAlerts(item.id))
+                    }
+                    item {
+                        Spacer(modifier = Modifier.height(20.dp))
+                    }
+                }
+
+                if(uiState.attentionAlerts.isNotEmpty()) {
+                    item {
+                        ImmediateAttentionHeader(
+                            text = "Requires Attention Alerts",
+                            count = uiState.attentionAlerts.size
+                        )
+                    }
+                    itemsIndexed(uiState.attentionAlerts) { index, item ->
+                        val isLast = index == uiState.attentionAlerts.lastIndex
+                        ImmediateAttentionAlertsInformationCard(item, isLast, onAlertClick)
+                    }
+                    item {
+                        Spacer(modifier = Modifier.height(20.dp))
+                    }
+                }
+
+                item {
+                    FieldsOverviewHeader(
+                        onOpenAllFields = onOpenAllFields
+                    )
+                }
+                itemsIndexed(uiState.fields) { index, item ->
+                    val isLast = index == uiState.fields.lastIndex
+                    FieldsOverviewInformationCard(item, isLast, onFieldClick, getTotalAlerts(item.id))
+                }
+            } else {
+                item {
+                    Spacer(modifier = Modifier.height(200.dp))
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "Try to refresh",
+                            style = MaterialTheme.typography.titleLarge
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -230,7 +319,7 @@ fun OverallInformation(
                 value = uiState.tasks.size,
                 text = {
                     Text(
-                        text = "${uiState.tasks.size}} need attention",
+                        text = "${uiState.tasks.size} need attention",
                         style = MaterialTheme.typography.bodySmall
                     )
                 },
@@ -288,40 +377,43 @@ fun InformationCard(
 
 @Composable
 fun ImmediateAttentionHeader(
+    text: String,
+    count: Int
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp),
-        border = BorderStroke(1.dp, Color.LightGray)
+        border = BorderStroke(1.dp, Color.LightGray),
+        colors = CardDefaults.cardColors(
+            containerColor = if(count <= 2) AppColors.orange.c100 else AppColors.red.c100,
+            contentColor = if(count <= 2) AppColors.orange.c800 else AppColors.red.c800
+        )
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(color = MaterialTheme.colorScheme.errorContainer)
                 .padding(12.dp)
                 .height(30.dp), verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
                 imageVector = Icons.Outlined.ErrorOutline,
-                contentDescription = "warning",
-                tint = MaterialTheme.colorScheme.error
+                contentDescription = null,
             )
             Spacer(modifier = Modifier.size(8.dp))
             Text(
-                text = "Requires Immediate Attention",
+                text = text,
                 style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onErrorContainer
             )
         }
     }
 }
 
 @Composable
-fun ImmediateAttentionInformationCard(
+fun ImmediateAttentionFieldsInformationCard(
     item: FieldDetails,
     isLastItem: Boolean,
-    onFieldClick: (Int) -> Unit,
-    totalAlerts: Int,
+    onFieldClick: (Long) -> Unit,
+    totalAlerts: Long,
 ) {
     Card(
         modifier = Modifier
@@ -342,14 +434,18 @@ fun ImmediateAttentionInformationCard(
                     text = item.title ?: "", style = MaterialTheme.typography.titleMedium
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Card(colors = CardDefaults.cardColors()) {
-//                    Text(
-//                        text = item.color.toStringField(),
-//                        color = item.color.toContentColor(),
-//                        style = MaterialTheme.typography.bodySmall,
-//                        modifier = Modifier.padding(vertical = 4.dp, horizontal = 8.dp),
-//                        fontWeight = FontWeight.Bold
-//                    )
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = item.health.toContainerColor()),
+                    border = BorderStroke(1.dp, item.health.toBorderColor()),
+                    shape = RoundedCornerShape(6.dp)
+                ) {
+                    Text(
+                        text = item.health.toStringField(),
+                        color = item.health.toContentColor(),
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(vertical = 4.dp, horizontal = 8.dp),
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
                 Spacer(modifier = Modifier.weight(1f))
                 Icon(
@@ -372,6 +468,67 @@ fun ImmediateAttentionInformationCard(
                 Spacer(modifier = Modifier.width(16.dp))
                 Text(
                     text = "$totalAlerts alerts", style = MaterialTheme.typography.bodySmall
+                )
+            }
+        }
+    }
+    if (!isLastItem) {
+        HorizontalDivider(
+            thickness = 1.dp, color = Color.LightGray
+        )
+    }
+}
+
+@Composable
+fun ImmediateAttentionAlertsInformationCard(
+    item: AlertDetails,
+    isLastItem: Boolean,
+    onAlertClick: (Long) -> Unit,
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(80.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
+        shape = if (isLastItem) RoundedCornerShape(
+            bottomStart = 12.dp, bottomEnd = 12.dp
+        ) else RectangleShape,
+        onClick = { onAlertClick(item.id) },
+        border = BorderStroke(1.dp, Color.LightGray)
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.SpaceEvenly
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = item.title ?: "", style = MaterialTheme.typography.titleMedium
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = item.severity.toContainerColor()),
+                    border = BorderStroke(1.dp, item.severity.toBorderColor()),
+                    shape = RoundedCornerShape(6.dp)
+                ) {
+                    Text(
+                        text = item.severity.toStringField(),
+                        color = item.severity.toContentColor(),
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(vertical = 4.dp, horizontal = 8.dp),
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+                Spacer(modifier = Modifier.weight(1f))
+                Icon(
+                    imageVector = Icons.Outlined.ChevronRight,
+                    contentDescription = null,
+                    modifier = Modifier.size(30.dp)
+                )
+            }
+            Spacer(modifier = Modifier.height(6.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = item.description ?: "", style = MaterialTheme.typography.bodySmall,
+                    maxLines = 1
                 )
             }
         }
@@ -426,8 +583,8 @@ fun FieldsOverviewHeader(
 fun FieldsOverviewInformationCard(
     item: FieldDetails,
     isLastItem: Boolean,
-    onFieldClick: (Int) -> Unit,
-    totalAlerts: Int,
+    onFieldClick: (Long) -> Unit,
+    totalAlerts: Long,
 ) {
     Card(
         modifier = Modifier
@@ -454,6 +611,7 @@ fun FieldsOverviewInformationCard(
                 Box(
                     modifier = Modifier
                         .size(8.dp)
+                        .background(color = item.health.toBorderColor(), shape = CircleShape)
                 )
                 Spacer(modifier = Modifier.weight(1f))
                 Text(
@@ -478,7 +636,7 @@ fun FieldsOverviewInformationCard(
                 )
                 Spacer(modifier = Modifier.width(16.dp))
                 Text(
-                    text = if (totalAlerts == 0) "" else "$totalAlerts alerts",
+                    text = if (totalAlerts.toInt() == 0) "" else "$totalAlerts alerts",
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.Bold
                 )
@@ -501,6 +659,7 @@ fun HomeScreenPreview() {
             fields = FakeFieldData.fields,
             alerts = FakeAlertData.alerts,
             attentionFields = FakeFieldData.fields.filter { it.health == FieldHealth.CRITICAL || it.health == FieldHealth.WARNING },
+            attentionAlerts = FakeAlertData.alerts.filter { it.severity == AlertSeverity.WARNING || it.severity == AlertSeverity.CRITICAL },
             tasks = FakeTaskData.tasks
         )
 
@@ -512,8 +671,9 @@ fun HomeScreenPreview() {
             HomeScreen(
                 uiState = uiState,
                 onFieldClick = {},
+                onAlertClick = {},
                 onOpenAllFields = {},
-                getTotalAlerts = { FakeAlertData.alerts.filter { alertDetails -> alertDetails.fieldId == it }.size }
+                getTotalAlerts = { FakeAlertData.alerts.filter { alertDetails -> alertDetails.fieldId == it }.size.toLong() }
             )
         }
     }

@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -36,27 +35,65 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.agristation1.data.farmDetails.FarmDetails
+import com.example.agristation1.data.userDetails.UserDetails
+import com.example.agristation1.fakedata.FakeFarmData
+import com.example.agristation1.ui.viewmodel.ProfileUiState
+import com.example.agristation1.ui.viewmodel.ProfileViewModel
 import com.example.compose.AppTheme
 
 @Composable
-fun ProfileMainScreen() {
+fun ProfileMainScreen(
+    viewModel: ProfileViewModel
+) {
+    val uiState: ProfileUiState by viewModel.uiState.collectAsState()
+    val userDetails = uiState.userDetails
+    val farmDetails = uiState.farmDetails
+
     Column {
         ProfileTopBar()
-        ProfileScreen()
+
+        if(userDetails == null) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(color = MaterialTheme.colorScheme.surface),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Try to refresh",
+                    style = MaterialTheme.typography.titleLarge
+                )
+            }
+        } else {
+            ProfileScreen(
+                userDetails = userDetails,
+                farmDetails = farmDetails,
+                onThemeChange = { viewModel.changeTheme(!uiState.isLightTheme) },
+                isLightTheme = uiState.isLightTheme
+            )
+        }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
+    userDetails: UserDetails,
+    farmDetails: FarmDetails?,
+    onThemeChange: () -> Unit = {},
+    isLightTheme: Boolean,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
@@ -67,11 +104,17 @@ fun ProfileScreen(
     ) {
         item {
             Spacer(modifier = Modifier.height(16.dp))
-            ProfileInformation()
+            ProfileInformation(
+                userDetails = userDetails,
+                farmDetails = farmDetails
+            )
         }
         item {
             Spacer(modifier = Modifier.height(16.dp))
-            AppSettings()
+            AppSettings(
+                isLightTheme = isLightTheme,
+                onThemeChange = onThemeChange
+            )
         }
         item {
             Spacer(modifier = Modifier.height(16.dp))
@@ -110,6 +153,8 @@ fun ProfileTopBar(
 
 @Composable
 fun ProfileInformation(
+    userDetails: UserDetails,
+    farmDetails: FarmDetails?,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -129,24 +174,24 @@ fun ProfileInformation(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "JD",
+                    text = "${userDetails.name.first()}${userDetails.surname.first()}",
                     style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.onPrimary
                 )
             }
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "John Davidson",
+                text = "${userDetails.name} ${userDetails.surname}",
                 style = MaterialTheme.typography.titleMedium,
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Farm Manager",
+                text = userDetails.role,
                 style = MaterialTheme.typography.bodyMedium,
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "GreenField Farm",
+                text = farmDetails?.farmName ?: "No farm",
                 style = MaterialTheme.typography.bodyMedium,
             )
             Spacer(modifier = Modifier.height(20.dp))
@@ -170,7 +215,7 @@ fun ProfileInformation(
                 )
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
-                    text = "john.davidson@greenfield.com",
+                    text = userDetails.email,
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
@@ -186,7 +231,7 @@ fun ProfileInformation(
                 )
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
-                    text = "GreenField Agriculture Co.",
+                    text = userDetails.company,
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
@@ -197,6 +242,8 @@ fun ProfileInformation(
 
 @Composable
 fun AppSettings(
+    isLightTheme: Boolean,
+    onThemeChange: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -272,14 +319,14 @@ fun AppSettings(
                         style = MaterialTheme.typography.titleMedium,
                     )
                     Text(
-                        text = "Light mode",
+                        text = if(isLightTheme) "Light mode" else "Dark mode",
                         style = MaterialTheme.typography.bodyMedium,
                     )
                 }
                 Spacer(modifier = Modifier.weight(1f))
-                Icon(
-                    imageVector = Icons.Outlined.ChevronRight,
-                    contentDescription = null
+                Switch(
+                    checked = isLightTheme,
+                    onCheckedChange = { onThemeChange() }
                 )
             }
             HorizontalDivider(
@@ -494,7 +541,22 @@ fun LogOut(
 @Preview
 @Composable
 fun ProfileScreenPreview() {
-    AppTheme() {
-        ProfileMainScreen()
+    AppTheme {
+        Column(modifier = Modifier.fillMaxSize()) {
+            ProfileTopBar()
+            ProfileScreen(
+                userDetails = UserDetails(
+                    id = 1,
+                    farmId = 1,
+                    role = "ADMIN",
+                    name = "John",
+                    surname = "Smith",
+                    email = "john.smith@greenvalleyfarm.com",
+                    company = "Green Valley Farm"
+                ),
+                farmDetails = FakeFarmData.farmDetails,
+                isLightTheme = true
+            )
+        }
     }
 }

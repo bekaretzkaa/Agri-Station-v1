@@ -29,11 +29,11 @@ import androidx.room.PrimaryKey
 data class ChatMessageEntity(
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "message_id")
-    val messageId: Int = 0,
+    val messageId: Long = 0,
     @ColumnInfo(name = "chat_id")
-    val chatId: Int,
+    val chatId: Long,
     @ColumnInfo(name = "position_in_chat")
-    val positionInChat: Int,
+    val positionInChat: Long,
     val text: String,
     val role: MessageRole,
     val status: MessageStatus

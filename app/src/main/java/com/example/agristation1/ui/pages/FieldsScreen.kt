@@ -34,11 +34,17 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -46,6 +52,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.agristation1.data.AppColors
 import com.example.agristation1.data.fieldDetails.FieldConnectivity
 import com.example.agristation1.data.fieldDetails.FieldDetails
@@ -63,19 +70,41 @@ import com.example.compose.AppTheme
 
 @Composable
 fun FieldsMainScreen(
-    onFieldClick: (Int) -> Unit = {},
+    onFieldClick: (Long) -> Unit = {},
     viewModel: FieldViewModel,
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
+    val refreshError by viewModel.refreshError.collectAsStateWithLifecycle()
 
-    Column {
-        FieldsTopBar(
-            uiState = uiState,
-            onFilterSelected = { viewModel.onFilterChange(it) }
-        )
-        FieldsScreen(
-            uiState = uiState,
-            onFieldClick = onFieldClick,
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(refreshError) {
+        refreshError?.let { message ->
+            snackbarHostState.showSnackbar(message)
+            viewModel.clearRefreshError()
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column {
+            FieldsTopBar(
+                uiState = uiState,
+                onFilterSelected = { viewModel.onFilterChange(it) }
+            )
+            FieldsScreen(
+                uiState = uiState,
+                onFieldClick = onFieldClick,
+                isRefreshing = isRefreshing,
+                onRefresh = { viewModel.refresh() }
+            )
+        }
+
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(16.dp)
         )
     }
 }
@@ -171,50 +200,56 @@ fun FieldsTopBar(
 @Composable
 fun FieldsScreen(
     uiState: FieldUiState,
-    onFieldClick: (Int) -> Unit,
+    onFieldClick: (Long) -> Unit,
+    isRefreshing: Boolean = false,
+    onRefresh: () -> Unit = {}
 ) {
-
-    if(uiState.filteredFields.isEmpty() && uiState.filteredArchivedFields.isEmpty()) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = "No fields",
-                style = MaterialTheme.typography.titleLarge
-            )
-        }
-    } else {
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(color = MaterialTheme.colorScheme.surface),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
-        ) {
-            items(uiState.filteredFields) { item ->
-                FieldsInformationCard(
-                    item = item,
-                    onClick = onFieldClick,
+    PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = onRefresh
+    ) {
+        if(uiState.filteredFields.isEmpty() && uiState.filteredArchivedFields.isEmpty()) {
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = "No fields",
+                    style = MaterialTheme.typography.titleLarge
                 )
-                Spacer(modifier = Modifier.height(20.dp))
             }
-
-            if(uiState.filteredArchivedFields.isNotEmpty()) {
-                item {
-                    Text(
-                        text = "Archived Fields",
-                        style = MaterialTheme.typography.titleMedium,
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(color = MaterialTheme.colorScheme.surface),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
+            ) {
+                items(uiState.filteredFields) { item ->
+                    FieldsInformationCard(
+                        item = item,
+                        onClick = onFieldClick,
                     )
                     Spacer(modifier = Modifier.height(20.dp))
                 }
 
-                items(uiState.filteredArchivedFields) { item ->
-                    FieldsInformationCard(
-                        item = item,
-                        onClick = onFieldClick
-                    )
-                    Spacer(modifier = Modifier.height(20.dp))
+                if(uiState.filteredArchivedFields.isNotEmpty()) {
+                    item {
+                        Text(
+                            text = "Archived Fields",
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                        Spacer(modifier = Modifier.height(20.dp))
+                    }
+
+                    items(uiState.filteredArchivedFields) { item ->
+                        FieldsInformationCard(
+                            item = item,
+                            onClick = onFieldClick
+                        )
+                        Spacer(modifier = Modifier.height(20.dp))
+                    }
                 }
             }
         }
@@ -224,7 +259,7 @@ fun FieldsScreen(
 @Composable
 fun FieldsInformationCard(
     item: FieldDetails,
-    onClick: (Int) -> Unit,
+    onClick: (Long) -> Unit,
 ) {
     val stripeWidth = 6.dp
     val cardShape = RoundedCornerShape(16.dp)
@@ -258,7 +293,7 @@ fun FieldsInformationCard(
                     modifier = Modifier
                         .width(stripeWidth)
                         .fillMaxHeight()
-                        .background(if(item.lifecycle != FieldLifecycle.ARCHIVED) item.health.toBorderColor() else item.lifecycle.toBorderColor())
+                        .background(if (item.lifecycle != FieldLifecycle.ARCHIVED) item.health.toBorderColor() else item.lifecycle.toBorderColor())
                 )
             }
 
@@ -354,8 +389,9 @@ fun FieldsInformationCard(
                                 style = MaterialTheme.typography.bodySmall,
                             )
                             Text(
-                                text = "${item.soilMoisture}%",
+                                text = (item.soilMoisture ?: item.lastValidSoilMoisture)?.let { "$it%" } ?: "N/A",
                                 style = MaterialTheme.typography.bodySmall,
+                                color = if (item.soilMoisture == null) Color.Gray else LocalContentColor.current
                             )
                         }
                     }
@@ -372,8 +408,9 @@ fun FieldsInformationCard(
                                 style = MaterialTheme.typography.bodySmall,
                             )
                             Text(
-                                text = "${item.airTemperature}°C",
+                                text = (item.airTemperature ?: item.lastValidAirTemperature)?.let { "$it°C" } ?: "N/A",
                                 style = MaterialTheme.typography.bodySmall,
+                                color = if (item.airTemperature == null) Color.Gray else LocalContentColor.current
                             )
                         }
                     }
@@ -396,8 +433,9 @@ fun FieldsInformationCard(
                                 style = MaterialTheme.typography.bodySmall,
                             )
                             Text(
-                                text = "${item.lux?.div(1000)}k lx",
+                                text = (item.lux ?: item.lastValidLux)?.let { "${it / 1000}k lx" } ?: "N/A",
                                 style = MaterialTheme.typography.bodySmall,
+                                color = if (item.lux == null) Color.Gray else LocalContentColor.current
                             )
                         }
                     }
@@ -414,8 +452,17 @@ fun FieldsInformationCard(
                                 style = MaterialTheme.typography.bodySmall,
                             )
                             Text(
-                                text = "${item.activeSensors}/${item.totalSensors}",
+                                text = if (item.totalSensors != null && item.activeSensors != null) {
+                                    "${item.activeSensors}/${item.totalSensors}"
+                                } else {
+                                    "N/A"
+                                },
                                 style = MaterialTheme.typography.bodySmall,
+                                color = if (item.totalSensors == null || item.activeSensors == null) {
+                                    Color.Gray
+                                } else {
+                                    LocalContentColor.current
+                                }
                             )
                         }
                     }

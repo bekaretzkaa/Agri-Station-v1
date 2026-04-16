@@ -41,9 +41,9 @@ fun FieldHealth.toBorderColor(): Color {
 
 fun FieldHealth.toStringField(): String {
     return when (this) {
-        FieldHealth.HEALTHY -> "healthy"
-        FieldHealth.WARNING -> "warning"
-        FieldHealth.CRITICAL -> "critical"
+        FieldHealth.HEALTHY -> "HEALTHY"
+        FieldHealth.WARNING -> "WARNING"
+        FieldHealth.CRITICAL -> "CRITICAL"
     }
 }
 
@@ -89,10 +89,10 @@ fun FieldConnectivity.toBorderColor(): Color {
 
 fun FieldConnectivity.toStringField(): String {
     return when (this) {
-        FieldConnectivity.ONLINE -> "online"
-        FieldConnectivity.PARTIAL -> "partial"
-        FieldConnectivity.OFFLINE -> "offline"
-        FieldConnectivity.UNKNOWN -> "unknown"
+        FieldConnectivity.ONLINE -> "ONLINE"
+        FieldConnectivity.PARTIAL -> "PARTIAL"
+        FieldConnectivity.OFFLINE -> "OFFLINE"
+        FieldConnectivity.UNKNOWN -> "UNKNOWN"
     }
 }
 

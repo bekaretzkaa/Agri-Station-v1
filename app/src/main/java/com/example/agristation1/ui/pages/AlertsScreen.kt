@@ -5,7 +5,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -24,16 +23,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccessTime
-import androidx.compose.material.icons.outlined.CalendarToday
-import androidx.compose.material.icons.outlined.Cancel
-import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material.icons.outlined.ChevronRight
-import androidx.compose.material.icons.outlined.Circle
 import androidx.compose.material.icons.outlined.Cloud
-import androidx.compose.material.icons.outlined.DeviceThermostat
-import androidx.compose.material.icons.outlined.ErrorOutline
-import androidx.compose.material.icons.outlined.Lightbulb
-import androidx.compose.material.icons.outlined.MonitorHeart
 import androidx.compose.material.icons.outlined.Opacity
 import androidx.compose.material.icons.outlined.PestControl
 import androidx.compose.material.icons.outlined.Sensors
@@ -46,19 +36,19 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -66,19 +56,15 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.agristation1.data.AppColors
 import com.example.agristation1.data.alertDetails.AlertDetails
+import com.example.agristation1.data.alertDetails.AlertLifecycle
 import com.example.agristation1.data.alertDetails.AlertType
 import com.example.agristation1.data.alertDetails.toBorderColor
 import com.example.agristation1.data.alertDetails.toContainerColor
 import com.example.agristation1.data.alertDetails.toContentColor
 import com.example.agristation1.data.alertDetails.toIconColor
 import com.example.agristation1.data.alertDetails.toStringField
+import com.example.agristation1.data.fieldDetails.FieldLifecycle
 import com.example.agristation1.data.formatRelativeTime
-import com.example.agristation1.data.taskDetails.TaskStatus
-import com.example.agristation1.data.taskDetails.toBorderColor
-import com.example.agristation1.data.taskDetails.toContainerColor
-import com.example.agristation1.data.taskDetails.toContentColor
-import com.example.agristation1.data.taskDetails.toStringField
-import com.example.agristation1.data.toUiDueDate
 import com.example.agristation1.fakedata.FakeAlertData
 import com.example.agristation1.fakedata.FakeFieldData
 import com.example.agristation1.ui.viewmodel.AlertFilter
@@ -88,19 +74,41 @@ import com.example.compose.AppTheme
 
 @Composable
 fun AlertsMainScreen(
-    onAlertClick: (Int) -> Unit = {},
+    onAlertClick: (Long) -> Unit = {},
     viewModel: AlertViewModel,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
+    val refreshError by viewModel.refreshError.collectAsStateWithLifecycle()
 
-    Column {
-        AlertsTopBar(
-            uiState = uiState,
-            onFilterSelected = { viewModel.onFilterChange(it) }
-        )
-        AlertsScreen(
-            uiState = uiState,
-            onAlertClick = onAlertClick
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(refreshError) {
+        refreshError?.let { message ->
+            snackbarHostState.showSnackbar(message)
+            viewModel.clearRefreshError()
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column {
+            AlertsTopBar(
+                uiState = uiState,
+                onFilterSelected = { viewModel.onFilterChange(it) }
+            )
+            AlertsScreen(
+                uiState = uiState,
+                onAlertClick = onAlertClick,
+                isRefreshing = isRefreshing,
+                onRefresh = { viewModel.refresh() }
+            )
+        }
+
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(16.dp)
         )
     }
 }
@@ -189,16 +197,16 @@ fun AlertsTopBar(
             }
             item {
                 Button(
-                    onClick = { onFilterSelected(AlertFilter.Resolved) },
+                    onClick = { onFilterSelected(AlertFilter.Archived) },
                     modifier = Modifier.height(35.dp),
                     contentPadding = PaddingValues(8.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = if (uiState.selectedFilter == AlertFilter.Resolved) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onPrimary,
-                        contentColor = if (uiState.selectedFilter == AlertFilter.Resolved) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary
+                        containerColor = if (uiState.selectedFilter == AlertFilter.Archived) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onPrimary,
+                        contentColor = if (uiState.selectedFilter == AlertFilter.Archived) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary
                     )
                 ) {
                     Text(
-                        text = "Resolved (${uiState.resolvedCount})",
+                        text = "Archived (${uiState.archivedCount})",
                         style = MaterialTheme.typography.bodyMedium,
                     )
                 }
@@ -212,24 +220,64 @@ fun AlertsTopBar(
 @Composable
 fun AlertsScreen(
     uiState: AlertUiState,
-    onAlertClick: (Int) -> Unit
+    onAlertClick: (Long) -> Unit,
+    isRefreshing: Boolean,
+    onRefresh: () -> Unit
 ) {
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(color = MaterialTheme.colorScheme.surface),
-        contentPadding = PaddingValues(vertical = 12.dp, horizontal = 16.dp)
+    PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = onRefresh,
     ) {
-        items(
-            items = uiState.filteredAlerts,
-            key = { it.id }
-        ) { item ->
-            AlertInformationCard(
-                item = item,
-                onClick = onAlertClick,
-                uiState = uiState
-            )
-            Spacer(modifier = Modifier.height(16.dp))
+
+        if(uiState.filteredAlerts.isEmpty() && uiState.archivedAlerts.isEmpty()) {
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = "No alerts",
+                    style = MaterialTheme.typography.titleLarge
+                )
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(color = MaterialTheme.colorScheme.surface),
+                contentPadding = PaddingValues(vertical = 12.dp, horizontal = 16.dp)
+            ) {
+                items(
+                    items = uiState.filteredAlerts,
+                    key = { it.id }
+                ) { item ->
+                    AlertInformationCard(
+                        item = item,
+                        onClick = onAlertClick,
+                        uiState = uiState
+                    )
+                    Spacer(modifier = Modifier.height(20.dp))
+                }
+
+                if(uiState.archivedAlerts.isNotEmpty()) {
+                    item {
+                        Text(
+                            text = "Archived Alerts",
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                        Spacer(modifier = Modifier.height(20.dp))
+                    }
+
+                    items(uiState.archivedAlerts) { item ->
+                        AlertInformationCard(
+                            item = item,
+                            onClick = onAlertClick,
+                            uiState = uiState
+                        )
+                        Spacer(modifier = Modifier.height(20.dp))
+                    }
+                }
+            }
         }
     }
 }
@@ -237,7 +285,7 @@ fun AlertsScreen(
 @Composable
 fun AlertInformationCard(
     item: AlertDetails,
-    onClick: (Int) -> Unit,
+    onClick: (Long) -> Unit,
     uiState: AlertUiState
 ) {
     val stripeWidth = 6.dp
@@ -245,9 +293,16 @@ fun AlertInformationCard(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
-        ),
+        colors = if(item.lifecycle != AlertLifecycle.DISMISSED && item.lifecycle != AlertLifecycle.RESOLVED) {
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
+            )
+        } else {
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+                contentColor = Color.Gray
+            )
+        },
         onClick = { onClick(item.id) },
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         border = BorderStroke(1.dp, Color.LightGray),
@@ -265,7 +320,13 @@ fun AlertInformationCard(
                     modifier = Modifier
                         .width(stripeWidth)
                         .fillMaxHeight()
-                        .background(item.severity.toBorderColor())
+                        .background(
+                            color = when (item.lifecycle) {
+                                AlertLifecycle.DISMISSED -> AppColors.gray.c200
+                                AlertLifecycle.RESOLVED -> AppColors.green.c200
+                                else -> item.severity.toBorderColor()
+                            }
+                        )
                 )
             }
 
@@ -284,7 +345,11 @@ fun AlertInformationCard(
                         modifier = Modifier
                             .size(50.dp)
                             .background(
-                                color = item.severity.toContainerColor(),
+                                color = when (item.lifecycle) {
+                                    AlertLifecycle.DISMISSED -> AppColors.gray.c100
+                                    AlertLifecycle.RESOLVED -> AppColors.green.c100
+                                    else -> item.severity.toContainerColor()
+                                },
                                 shape = CircleShape
                             ),
                         contentAlignment = Alignment.Center,
@@ -301,7 +366,11 @@ fun AlertInformationCard(
                                 AlertType.UNKNOWN -> Icons.Outlined.WarningAmber
                             },
                             contentDescription = null,
-                            tint = item.severity.toIconColor()
+                            tint = when(item.lifecycle) {
+                                AlertLifecycle.DISMISSED -> AppColors.gray.c600
+                                AlertLifecycle.RESOLVED -> AppColors.green.c600
+                                else -> item.severity.toIconColor()
+                            }
                         )
                     }
 
@@ -316,21 +385,22 @@ fun AlertInformationCard(
                             Text(
                                 text = item.title ?: "",
                                 style = MaterialTheme.typography.titleMedium,
-                                modifier = Modifier.weight(1f)
+                                modifier = Modifier.weight(1f),
+                                maxLines = 2
                             )
 
                             Spacer(modifier = Modifier.width(8.dp))
 
                             Card(
                                 colors = CardDefaults.cardColors(
-                                    containerColor = item.severity.toContainerColor()
+                                    containerColor = if(item.lifecycle == AlertLifecycle.DISMISSED || item.lifecycle == AlertLifecycle.RESOLVED) AppColors.gray.c100 else item.severity.toContainerColor()
                                 ),
-                                border = BorderStroke(1.dp, item.severity.toBorderColor()),
+                                border = BorderStroke(1.dp, if(item.lifecycle == AlertLifecycle.DISMISSED || item.lifecycle == AlertLifecycle.RESOLVED) AppColors.gray.c200 else item.severity.toBorderColor()),
                                 shape = RoundedCornerShape(6.dp)
                             ) {
                                 Text(
                                     text = item.severity.toStringField(),
-                                    color = item.severity.toContentColor(),
+                                    color = if(item.lifecycle == AlertLifecycle.DISMISSED || item.lifecycle == AlertLifecycle.RESOLVED) AppColors.gray.c800 else item.severity.toContentColor(),
                                     style = MaterialTheme.typography.bodySmall,
                                     modifier = Modifier.padding(
                                         vertical = 4.dp,
@@ -378,12 +448,14 @@ fun AlertInformationCard(
 
                 Spacer(modifier = Modifier.height(26.dp))
 
-                Text(
-                    text = item.description ?: "",
-                    style = MaterialTheme.typography.bodyMedium,
-                    maxLines = 2,
-                    modifier = Modifier.padding(start = 8.dp)
-                )
+                Row(modifier = Modifier.fillMaxWidth(0.85f)) {
+                    Text(
+                        text = item.description ?: "",
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 2,
+                        modifier = Modifier.padding(start = 8.dp)
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(12.dp))
 
@@ -418,9 +490,15 @@ fun AlertInformationCard(
 @Composable
 fun AlertsScreenPreview() {
     AppTheme {
+        val newAlerts =
+            FakeAlertData.alerts.filter { it.lifecycle != AlertLifecycle.RESOLVED && it.lifecycle != AlertLifecycle.DISMISSED }
+
         val uiState = AlertUiState(
             alerts = FakeAlertData.alerts,
-            fields = FakeFieldData.fields
+            filteredAlerts = newAlerts.take(2),
+            fields = FakeFieldData.fields,
+            selectedFilter = AlertFilter.All,
+            archivedAlerts = FakeAlertData.alerts.filter { it.lifecycle == AlertLifecycle.DISMISSED || it.lifecycle == AlertLifecycle.RESOLVED },
         )
 
         Column {
@@ -430,7 +508,9 @@ fun AlertsScreenPreview() {
             )
             AlertsScreen(
                 uiState = uiState,
-                onAlertClick = {}
+                onAlertClick = {},
+                isRefreshing = false,
+                onRefresh = {}
             )
         }
     }

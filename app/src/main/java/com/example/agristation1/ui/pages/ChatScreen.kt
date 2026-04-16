@@ -29,6 +29,7 @@ import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Create
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Send
 import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.Button
@@ -66,8 +67,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.example.agristation1.data.AppColors
 import com.example.agristation1.data.chatDetails.ChatMessageEntity
 import com.example.agristation1.data.chatDetails.MessageRole
+import com.example.agristation1.data.chatDetails.MessageStatus
 import com.example.agristation1.data.formatRelativeTime
 import com.example.agristation1.fakedata.FakeChatData
 import com.example.agristation1.ui.viewmodel.ChatUiState
@@ -92,6 +95,9 @@ fun ChatMainScreen(
         onSendQuery = { viewModel.onSendQuery() },
         onDeleteChat = {
             viewModel.onDeleteChat()
+        },
+        onRetry = {
+            viewModel.onRetry()
         }
     )
 }
@@ -100,11 +106,12 @@ fun ChatMainScreen(
 fun ChatMainContent(
     uiState: ChatUiState,
     onBack: () -> Unit = {},
-    onChatClick: (Int) -> Unit = {},
+    onChatClick: (Long) -> Unit = {},
     onNewChatClick: () -> Unit = {},
     onInputChange: (String) -> Unit = {},
     onSendQuery: () -> Unit = {},
     onDeleteChat: () -> Unit = {},
+    onRetry: () -> Unit = {},
 
     initialDrawerValue: DrawerValue = DrawerValue.Closed
 ) {
@@ -198,7 +205,8 @@ fun ChatMainContent(
                 messages = uiState.messages,
                 uiState = uiState,
                 onInputChange = onInputChange,
-                onSendQuery = onSendQuery
+                onSendQuery = onSendQuery,
+                onRetry = onRetry
             )
         }
     }
@@ -276,7 +284,7 @@ fun ChatTopBar(
                     containerColor = MaterialTheme.colorScheme.surfaceContainer,
                 ),
                 shape = RoundedCornerShape(12.dp)
-            ) {
+                ) {
                 Icon(
                     imageVector = Icons.Outlined.Delete,
                     contentDescription = null
@@ -291,7 +299,8 @@ fun ChatScreen(
     messages: List<ChatMessageEntity>,
     uiState: ChatUiState,
     onInputChange: (String) -> Unit = {},
-    onSendQuery: () -> Unit = {}
+    onSendQuery: () -> Unit = {},
+    onRetry: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -308,7 +317,8 @@ fun ChatScreen(
                     Card(
                         modifier = Modifier.width(300.dp),
                         colors = CardDefaults.cardColors(
-                            containerColor = if (message.role == MessageRole.USER) MaterialTheme.colorScheme.primaryContainer
+                            containerColor = if(message.status == MessageStatus.ERROR) AppColors.red.c100
+                            else if (message.role == MessageRole.USER) MaterialTheme.colorScheme.primaryContainer
                             else MaterialTheme.colorScheme.secondaryContainer
                         )
                     ) {
@@ -316,6 +326,16 @@ fun ChatScreen(
                             text = message.text,
                             modifier = Modifier.padding(8.dp)
                         )
+                    }
+                    if(message.status == MessageStatus.ERROR && messages.last() == message) {
+                        IconButton(
+                            onClick = onRetry
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Refresh,
+                                contentDescription = null
+                            )
+                        }
                     }
                     if (message.role == MessageRole.ASSISTANT) Spacer(modifier = Modifier.weight(1f))
                 }
@@ -503,7 +523,7 @@ fun ChatMainScreenPreview() {
         ChatMainContent(
             uiState = ChatUiState(
                 chatHistory = FakeChatData.chats,
-                messages = FakeChatData.messages.filter { it.chatId == 1 }
+                messages = FakeChatData.messages.filter { it.chatId == 1L }
             )
         )
     }
@@ -516,7 +536,7 @@ fun ChatDrawerPreview() {
         ChatMainContent(
             uiState = ChatUiState(
                 chatHistory = FakeChatData.chats,
-                messages = FakeChatData.messages.filter { it.chatId == 1 }
+                messages = FakeChatData.messages.filter { it.chatId == 1L }
             ),
             initialDrawerValue = DrawerValue.Open
         )

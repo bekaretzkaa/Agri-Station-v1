@@ -12,6 +12,14 @@ enum class MessageRole(val code: Int) {
     }
 }
 
+fun MessageRole.toText(): String {
+    return when (this) {
+        MessageRole.USER -> "User"
+        MessageRole.ASSISTANT -> "Model"
+        MessageRole.SYSTEM -> "Android System"
+    }
+}
+
 enum class MessageStatus(val code: Int) {
     SENDING(0),
     SENT(1),

@@ -101,6 +101,7 @@ import com.example.agristation1.ui.viewmodel.AlertDetailsUiState
 import com.example.agristation1.ui.viewmodel.AlertDetailsViewModel
 import com.example.agristation1.ui.viewmodel.TaskFormState
 import com.example.compose.AppTheme
+import java.time.Instant
 import java.time.LocalDate
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -108,9 +109,9 @@ import java.time.LocalDate
 fun AlertDetailsMainScreen(
     onBack: () -> Unit = {},
     viewModel: AlertDetailsViewModel,
-    onOpenFieldDetails: (Int) -> Unit = {},
-    onOpenTaskDetails: (Int) -> Unit = {},
-    onDeleteAlert: (Int) -> Unit
+    onOpenFieldDetails: (Long) -> Unit = {},
+    onOpenTaskDetails: (Long) -> Unit = {},
+    onDeleteAlert: (Long) -> Unit
 ) {
     val uiState: AlertDetailsUiState by viewModel.uiState.collectAsStateWithLifecycle()
     val alertDetails = uiState.alertDetails ?: return
@@ -159,10 +160,10 @@ fun AlertDetailsMainScreen(
         AlertDetailsScreen(
             uiState = uiState,
             alertDetails = alertDetails,
-            onMarkAsViewed = { viewModel.markAlertAsAcknowledged() },
-            onUnMarkAsViewed = { viewModel.unMarkAlertAsAcknowledged() },
-            onMarkAsResolved = { viewModel.markAlertAsResolved() },
-            onMarkAsDismissed = { viewModel.markAlertAsDismissed() },
+            onMarkAsViewed = { viewModel.onLifecycleChange(alertDetails.id, AlertLifecycle.ACKNOWLEDGED) },
+            onUnMarkAsViewed = { viewModel.onLifecycleChange(alertDetails.id, AlertLifecycle.OPEN) },
+            onMarkAsResolved = { viewModel.onLifecycleChange(alertDetails.id, AlertLifecycle.RESOLVED) },
+            onMarkAsDismissed = { viewModel.onLifecycleChange(alertDetails.id, AlertLifecycle.DISMISSED) },
             onCreateTask = {
                 viewModel.initializeState()
                 showAddTaskFromAlert = true
@@ -279,8 +280,8 @@ fun AlertDetailsScreen(
     onMarkAsResolved: () -> Unit,
     onMarkAsDismissed: () -> Unit,
     onCreateTask: () -> Unit,
-    onOpenTaskDetails: (Int) -> Unit,
-    onOpenFieldDetails: (Int) -> Unit,
+    onOpenTaskDetails: (Long) -> Unit,
+    onOpenFieldDetails: (Long) -> Unit,
     onDeleteAlert: () -> Unit
 ) {
     val relatedTask = uiState.task
@@ -334,8 +335,8 @@ fun AlertDetailsScreen(
 fun AlertDetailsInformation(
     uiState: AlertDetailsUiState,
     alertDetails: AlertDetails,
-    onOpenFieldDetails: (Int) -> Unit,
-    onOpenTaskDetails: (Int) -> Unit,
+    onOpenFieldDetails: (Long) -> Unit,
+    onOpenTaskDetails: (Long) -> Unit,
     relatedTask: TaskDetails?
 ) {
     Card(
@@ -982,9 +983,9 @@ fun AddTaskSheetFromAlert(
     onDismiss: () -> Unit,
     onTitleChange: (String) -> Unit,
     onDescriptionChange: (String) -> Unit,
-    onFieldChange: (Int) -> Unit,
+    onFieldChange: (Long) -> Unit,
     onPriorityChange: (TaskPriority) -> Unit,
-    onDueDateChange: (LocalDate) -> Unit,
+    onDueDateChange: (Instant) -> Unit,
     onSaveTask: () -> Unit,
     onTypeChange: (TaskType) -> Unit
 ) {
@@ -1264,7 +1265,7 @@ fun AddTaskSheetFromAlert(
 fun FieldDropDownAddFromAlert(
     uiState: AlertDetailsUiState,
     formState: TaskFormState,
-    onFieldChange: (Int) -> Unit
+    onFieldChange: (Long) -> Unit
 ) {
     val options = uiState.fields
     var expanded by remember { mutableStateOf(false) }

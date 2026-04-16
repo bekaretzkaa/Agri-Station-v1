@@ -86,9 +86,9 @@ object FakeChatData {
             messageId = 7,
             chatId = 1,
             positionInChat = 7,
-            text = "Если ветрено, лёгкий шарф будет вполне уместен, особенно утром и вечером.",
+            text = "Ошибка при отправке сообщения",
             role = MessageRole.ASSISTANT,
-            status = MessageStatus.SENT
+            status = MessageStatus.ERROR
         ),
 
         // =========================

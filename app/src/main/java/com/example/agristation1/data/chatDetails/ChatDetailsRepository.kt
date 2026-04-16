@@ -7,19 +7,21 @@ interface ChatDetailsRepository {
 
     fun getAllChats(): Flow<List<ChatEntity>>
 
-    fun getMessagesByChatId(chatId: Int): Flow<List<ChatMessageEntity>>
+    fun getMessagesByChatId(chatId: Long): Flow<List<ChatMessageEntity>>
 
-    suspend fun insertChat(chat: ChatEntity): Int
+    suspend fun getMessagesByChatIdList(chatId: Long): List<ChatMessageEntity>
 
-    suspend fun updateChatUpdatedAt(chatId: Int, updatedAt: Instant)
+    suspend fun insertChat(chat: ChatEntity): Long
 
-    suspend fun updateChatTitle(chatId: Int, title: String?)
+    suspend fun updateChatUpdatedAt(chatId: Long, updatedAt: Instant)
+
+    suspend fun updateChatTitle(chatId: Long, title: String?)
 
     suspend fun insertMessage(message: ChatMessageEntity)
 
-    suspend fun updateMessage(positionInChat: Int, status: MessageStatus, text: String)
+    suspend fun updateMessage(positionInChat: Long, status: MessageStatus, text: String)
 
-    suspend fun deleteChat(chatId: Int)
+    suspend fun deleteChat(chatId: Long)
 
 }
 
@@ -29,19 +31,23 @@ class ChatDetailsOfflineRepository(private val chatDetailsDao: ChatDetailsDao) :
         return chatDetailsDao.getAllChats()
     }
 
-    override fun getMessagesByChatId(chatId: Int): Flow<List<ChatMessageEntity>> {
+    override fun getMessagesByChatId(chatId: Long): Flow<List<ChatMessageEntity>> {
         return chatDetailsDao.getMessagesByChatId(chatId)
     }
 
-    override suspend fun insertChat(chat: ChatEntity): Int {
-        return chatDetailsDao.insertChat(chat).toInt()
+    override suspend fun getMessagesByChatIdList(chatId: Long): List<ChatMessageEntity> {
+        return chatDetailsDao.getMessagesByChatIdList(chatId)
     }
 
-    override suspend fun updateChatUpdatedAt(chatId: Int, updatedAt: Instant) {
+    override suspend fun insertChat(chat: ChatEntity): Long {
+        return chatDetailsDao.insertChat(chat)
+    }
+
+    override suspend fun updateChatUpdatedAt(chatId: Long, updatedAt: Instant) {
         chatDetailsDao.updateChatUpdatedAt(chatId, updatedAt)
     }
 
-    override suspend fun updateChatTitle(chatId: Int, title: String?) {
+    override suspend fun updateChatTitle(chatId: Long, title: String?) {
         chatDetailsDao.updateChatTitle(chatId, title)
     }
 
@@ -49,11 +55,11 @@ class ChatDetailsOfflineRepository(private val chatDetailsDao: ChatDetailsDao) :
         chatDetailsDao.insertMessage(message)
     }
 
-    override suspend fun updateMessage(positionInChat: Int, status: MessageStatus, text: String) {
+    override suspend fun updateMessage(positionInChat: Long, status: MessageStatus, text: String) {
         chatDetailsDao.updateMessage(positionInChat, status, text)
     }
 
-    override suspend fun deleteChat(chatId: Int) {
+    override suspend fun deleteChat(chatId: Long) {
         chatDetailsDao.deleteChat(chatId)
     }
 

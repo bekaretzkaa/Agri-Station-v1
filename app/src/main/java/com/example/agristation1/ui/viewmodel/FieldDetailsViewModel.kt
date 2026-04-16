@@ -14,6 +14,10 @@ import com.example.agristation1.data.alertDetails.AlertDetails
 import com.example.agristation1.data.alertDetails.AlertDetailsOfflineRepository
 import com.example.agristation1.data.fieldDetails.FieldDetails
 import com.example.agristation1.data.fieldDetails.FieldDetailsOfflineRepository
+import com.example.agristation1.data.fieldDetails.toLatLngList
+import com.example.agristation1.data.sensorDetails.SensorDetails
+import com.example.agristation1.data.sensorDetails.SensorDetailsOfflineRepository
+import com.google.android.gms.maps.model.LatLng
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -21,25 +25,34 @@ import kotlinx.coroutines.flow.stateIn
 
 data class FieldDetailsUiState(
     val fieldDetails: FieldDetails? = null,
-    val filteredAlerts: List<AlertDetails> = emptyList()
+    val fieldPoints: List<LatLng> = emptyList(),
+    val filteredAlerts: List<AlertDetails> = emptyList(),
+    val sensorDetails: List<SensorDetails> = emptyList()
 )
 
 class FieldDetailsViewModel(
     savedStateHandle: SavedStateHandle,
     private val fieldDetailsOfflineRepository: FieldDetailsOfflineRepository,
-    private val alertDetailsOfflineRepository: AlertDetailsOfflineRepository
+    private val alertDetailsOfflineRepository: AlertDetailsOfflineRepository,
+    private val sensorDetailsOfflineRepository: SensorDetailsOfflineRepository
 ): ViewModel() {
 
-    private val fieldId: Int = savedStateHandle.get<String>("fieldId")?.toIntOrNull() ?: 0
+    private val fieldId: Long = savedStateHandle.get<String>("fieldId")?.toLongOrNull() ?: 0L
 
     val uiState: StateFlow<FieldDetailsUiState> =
         combine(
             fieldDetailsOfflineRepository.getFieldByIdStream(fieldId),
-            alertDetailsOfflineRepository.getAlertsByFieldIdStream(fieldId)
-        ) { fields, filteredAlerts ->
+            alertDetailsOfflineRepository.getAlertsByFieldIdStream(fieldId),
+            sensorDetailsOfflineRepository.getSensorDetailsByFieldId(fieldId)
+        ) { fields, filteredAlerts, sensors ->
+
+            val points = fieldDetailsOfflineRepository.getFieldWithPointsById(fieldId).toLatLngList()
+
             FieldDetailsUiState(
                 fieldDetails = fields,
-                filteredAlerts = filteredAlerts
+                fieldPoints = points,
+                filteredAlerts = filteredAlerts,
+                sensorDetails = sensors
             )
         }.stateIn(
             scope = viewModelScope,
@@ -53,7 +66,8 @@ class FieldDetailsViewModel(
                 FieldDetailsViewModel(
                     this.createSavedStateHandle(),
                     agriStationApplication().container.fieldDetailsOfflineRepository,
-                    agriStationApplication().container.alertDetailsOfflineRepository
+                    agriStationApplication().container.alertDetailsOfflineRepository,
+                    agriStationApplication().container.sensorDetailsOfflineRepository
                 )
             }
         }

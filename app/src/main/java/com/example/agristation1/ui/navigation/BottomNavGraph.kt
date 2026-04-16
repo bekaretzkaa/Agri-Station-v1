@@ -29,6 +29,7 @@ import com.example.agristation1.ui.viewmodel.ChatViewModel
 import com.example.agristation1.ui.viewmodel.FieldDetailsViewModel
 import com.example.agristation1.ui.viewmodel.FieldViewModel
 import com.example.agristation1.ui.viewmodel.HomeViewModel
+import com.example.agristation1.ui.viewmodel.ProfileViewModel
 import com.example.agristation1.ui.viewmodel.StatisticsViewModel
 import com.example.agristation1.ui.viewmodel.TaskDetailsViewModel
 import com.example.agristation1.ui.viewmodel.TaskViewModel
@@ -40,6 +41,7 @@ fun BottomNavGraph(navController: NavHostController, padding: Dp) {
     val homeViewModel: HomeViewModel = viewModel(factory = HomeViewModel.factory)
     val taskViewModel: TaskViewModel = viewModel(factory = TaskViewModel.factory)
     val chatViewModel: ChatViewModel = viewModel(factory = ChatViewModel.factory)
+    val profileViewModel: ProfileViewModel = viewModel(factory = ProfileViewModel.factory)
 
     NavHost(
         navController = navController,
@@ -51,6 +53,9 @@ fun BottomNavGraph(navController: NavHostController, padding: Dp) {
                 viewModel = homeViewModel,
                 onFieldClick = { fieldId ->
                     navController.navigate(AppRoute.FieldDetails.createRoute(fieldId))
+                },
+                onAlertClick = { alertId ->
+                    navController.navigate(AppRoute.AlertDetails.createRoute(alertId))
                 },
                 onOpenAllFields = { navController.navigate(AppRoute.Fields.route) },
                 onChatClick = { navController.navigate(AppRoute.Chat.route) }
@@ -81,7 +86,9 @@ fun BottomNavGraph(navController: NavHostController, padding: Dp) {
             )
         }
         composable(route = AppRoute.Profile.route) {
-            ProfileMainScreen()
+            ProfileMainScreen(
+                viewModel = profileViewModel
+            )
         }
 
         composable(route = AppRoute.Chat.route) {

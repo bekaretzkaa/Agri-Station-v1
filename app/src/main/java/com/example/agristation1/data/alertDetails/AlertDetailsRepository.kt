@@ -1,27 +1,18 @@
 package com.example.agristation1.data.alertDetails
 
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.toList
 
 interface AlertDetailsRepository {
     fun getAllAlertsStream(): Flow<List<AlertDetails>>
 
-    fun getResolvedAlertsStream(): Flow<List<AlertDetails>>
+    fun getAlertsByFieldIdStream(fieldId: Long): Flow<List<AlertDetails>>
 
-    fun getDismissedAlertsStream(): Flow<List<AlertDetails>>
+    fun getAlertByIdStream(alertId: Long): Flow<AlertDetails?>
 
-    fun getAlertsByFieldIdStream(fieldId: Int): Flow<List<AlertDetails>>
+    suspend fun deleteAlert(alertId: Long)
 
-    fun getAlertByIdStream(alertId: Int): Flow<AlertDetails?>
-
-    suspend fun markAlertAsAcknowledged(alertId: Int)
-
-    suspend fun markAlertAsUnAcknowledged(alertId: Int)
-
-    suspend fun markAlertAsResolved(alertId: Int)
-
-    suspend fun markAlertAsDismissed(alertId: Int)
-
-    suspend fun deleteAlert(alertId: Int)
+    fun getImmediateAttentionAlertsStream(): Flow<List<AlertDetails>>
 }
 
 class AlertDetailsOfflineRepository(
@@ -32,40 +23,31 @@ class AlertDetailsOfflineRepository(
         return alertDetailsDao.getAllAlerts()
     }
 
-    override fun getResolvedAlertsStream(): Flow<List<AlertDetails>> {
-        return alertDetailsDao.getResolvedAlerts()
-    }
-
-    override fun getDismissedAlertsStream(): Flow<List<AlertDetails>> {
-        return alertDetailsDao.getDismissedAlerts()
-    }
-
-    override fun getAlertsByFieldIdStream(fieldId: Int): Flow<List<AlertDetails>> {
+    override fun getAlertsByFieldIdStream(fieldId: Long): Flow<List<AlertDetails>> {
         return alertDetailsDao.getAlertsByFieldId(fieldId)
     }
 
-    override fun getAlertByIdStream(alertId: Int): Flow<AlertDetails?> {
+    override fun getAlertByIdStream(alertId: Long): Flow<AlertDetails?> {
         return alertDetailsDao.getAlertById(alertId)
     }
 
-    override suspend fun markAlertAsAcknowledged(alertId: Int) {
-        return alertDetailsDao.markAlertAsAcknowledged(alertId)
-    }
-
-    override suspend fun markAlertAsUnAcknowledged(alertId: Int) {
-        return alertDetailsDao.markAlertAsUnAcknowledged(alertId)
-    }
-
-    override suspend fun markAlertAsResolved(alertId: Int) {
-        return alertDetailsDao.markAlertAsResolved(alertId)
-    }
-
-    override suspend fun markAlertAsDismissed(alertId: Int) {
-        return alertDetailsDao.markAlertAsDismissed(alertId)
-    }
-
-    override suspend fun deleteAlert(alertId: Int) {
+    override suspend fun deleteAlert(alertId: Long) {
         alertDetailsDao.deleteAlert(alertId)
     }
 
+    suspend fun getAllAlertsList(): List<AlertDetails> {
+        return alertDetailsDao.getAlertsList()
+    }
+
+    suspend fun upsertAlert(alert: AlertDetails) {
+        alertDetailsDao.upsert(alert)
+    }
+
+    suspend fun updateLifecycle(alertId: Long, lifecycle: AlertLifecycle) {
+        alertDetailsDao.updateLifecycle(alertId, lifecycle.code)
+    }
+
+    override fun getImmediateAttentionAlertsStream(): Flow<List<AlertDetails>> {
+        return alertDetailsDao.getImmediateAttentionAlerts()
+    }
 }

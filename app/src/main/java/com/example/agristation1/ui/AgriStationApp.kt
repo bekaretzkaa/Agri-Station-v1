@@ -10,6 +10,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -78,7 +79,9 @@ fun RowScope.AddItem(
             )
         },
         icon = {
-            Icon(imageVector = screen.icon, contentDescription = "Navigation Icon")
+            Icon(
+                imageVector = screen.icon, contentDescription = "Navigation Icon",
+            )
         },
         selected = currentDestination?.hierarchy?.any {
             it.route == screen.route
@@ -89,7 +92,12 @@ fun RowScope.AddItem(
                 launchSingleTop = true
                 restoreState = true
             }
-        }
+        },
+        colors = NavigationBarItemDefaults.colors(
+            selectedIconColor = MaterialTheme.colorScheme.secondaryContainer,
+            indicatorColor = MaterialTheme.colorScheme.onSecondaryContainer.copy(0.75f),
+            unselectedIconColor = MaterialTheme.colorScheme.onSecondaryContainer
+        )
     )
 }
 

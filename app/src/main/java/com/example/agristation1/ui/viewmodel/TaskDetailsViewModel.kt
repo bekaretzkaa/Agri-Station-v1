@@ -12,6 +12,7 @@ import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.example.agristation1.data.AgriStationDatabase
 import com.example.agristation1.data.alertDetails.AlertDetails
 import com.example.agristation1.data.alertDetails.AlertDetailsOfflineRepository
 import com.example.agristation1.data.fieldDetails.FieldDetails
@@ -19,9 +20,15 @@ import com.example.agristation1.data.fieldDetails.FieldDetailsOfflineRepository
 import com.example.agristation1.data.taskDetails.TaskDetails
 import com.example.agristation1.data.taskDetails.TaskDetailsOfflineRepository
 import com.example.agristation1.data.taskDetails.TaskPriority
+import com.example.agristation1.data.taskDetails.TaskStatus
 import com.example.agristation1.data.taskDetails.TaskType
-import com.example.agristation1.data.taskNotes.TaskNotes
-import com.example.agristation1.data.taskNotes.TaskNotesOfflineRepository
+import com.example.agristation1.network.taskNetwork.TaskDetailsNetwork
+import com.example.agristation1.network.taskNetwork.TaskPendingOperation
+import com.example.agristation1.network.taskNetwork.TaskPendingOperationDao
+import com.example.agristation1.network.taskNetwork.TaskPendingOperationRepository
+import com.example.agristation1.network.taskNetwork.TaskPendingOperationStatus
+import com.example.agristation1.network.taskNetwork.TaskPendingOperationType
+import com.example.agristation1.network.taskNetwork.toNetwork
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -30,13 +37,15 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import java.time.Instant
 import java.time.LocalDate
 
 data class TaskDetailsUiState(
     val taskDetails: TaskDetails? = null,
     val field: FieldDetails? = null,
     val alert: AlertDetails? = null,
-    val notes: List<TaskNotes> = emptyList(),
     val isUpdating: Boolean = false,
     val fields: List<FieldDetails> = emptyList()
 )
@@ -46,10 +55,10 @@ class TaskDetailsViewModel(
     private val taskDetailsOfflineRepository: TaskDetailsOfflineRepository,
     private val fieldDetailsOfflineRepository: FieldDetailsOfflineRepository,
     private val alertDetailsOfflineRepository: AlertDetailsOfflineRepository,
-    private val taskNotesOfflineRepository: TaskNotesOfflineRepository
-) : ViewModel() {
+    private val taskPendingOperationRepository: TaskPendingOperationRepository
+    ) : ViewModel() {
 
-    private val taskId: Int = savedStateHandle.get<String>("taskId")?.toIntOrNull() ?: 0
+    private val taskId: Long = savedStateHandle.get<String>("taskId")?.toLongOrNull() ?: 0L
 
     private val taskFlow = taskDetailsOfflineRepository.getTaskByIdStream(taskId)
 
@@ -68,14 +77,12 @@ class TaskDetailsViewModel(
                 combine(
                     fieldDetailsOfflineRepository.getFieldByIdStream(task.fieldId),
                     if(task.alertId != null) alertDetailsOfflineRepository.getAlertByIdStream(task.alertId) else flowOf(null),
-                    taskNotesOfflineRepository.getTaskNotesByTaskIdStream(task.id),
                     fieldDetailsOfflineRepository.getAllFieldsStream()
-                ) { field, alert, notes, fields ->
+                ) { field, alert, fields ->
                     TaskDetailsUiState(
                         taskDetails = task,
                         field = field,
                         alert = alert,
-                        notes = notes,
                         isUpdating = isUpdating,
                         fields = fields
                     )
@@ -87,65 +94,43 @@ class TaskDetailsViewModel(
             initialValue = TaskDetailsUiState()
         )
 
-    fun markTaskAsStarted(id: Int) {
+    fun onTaskStatusChange(taskId: Long, newStatus: TaskStatus) {
         viewModelScope.launch {
             _isUpdating.value = true
             try {
-                taskDetailsOfflineRepository.markTaskAsStarted(id)
+                taskDetailsOfflineRepository.updateTaskStatus(taskId, newStatus.code)
+
+                taskPendingOperationRepository.deleteByTaskIdAndOperation(taskId, TaskPendingOperationType.UPDATE_STATUS)
+
+                taskPendingOperationRepository.insert(
+                    TaskPendingOperation(
+                        entityId = taskId,
+                        operation = TaskPendingOperationType.UPDATE_STATUS,
+                        payload = newStatus.code.toString(),
+                    )
+                )
             } finally {
                 _isUpdating.value = false
             }
         }
     }
 
-    fun markTaskAsCompleted(id: Int) {
+    fun deleteTask(taskId: Long) {
         viewModelScope.launch {
             _isUpdating.value = true
             try {
-                taskDetailsOfflineRepository.markTaskAsCompleted(id)
+                taskDetailsOfflineRepository.deleteTask(taskId)
+
+                taskPendingOperationRepository.insert(
+                    TaskPendingOperation(
+                        entityId = taskId,
+                        operation = TaskPendingOperationType.DELETE_TASK,
+                        payload = taskId.toString(),
+                    )
+                )
             } finally {
                 _isUpdating.value = false
             }
-        }
-    }
-
-    fun unMarkTaskAsCompleted(id: Int) {
-        viewModelScope.launch {
-            _isUpdating.value = true
-            try {
-                taskDetailsOfflineRepository.unMarkTaskAsCompleted(id)
-            } finally {
-                _isUpdating.value = false
-            }
-        }
-    }
-
-    fun deleteTask(id: Int) {
-        viewModelScope.launch {
-            _isUpdating.value = true
-            try {
-                taskDetailsOfflineRepository.deleteTask(id)
-            } finally {
-                _isUpdating.value = false
-            }
-        }
-    }
-
-    fun insertTaskNote(taskId: Int, note: String) {
-        viewModelScope.launch {
-            taskNotesOfflineRepository.insertTaskNote(taskId, note.trim())
-        }
-    }
-
-    fun deleteTaskNote(id: Int) {
-        viewModelScope.launch {
-            taskNotesOfflineRepository.deleteTaskNote(id)
-        }
-    }
-
-    fun updateTaskNote(id: Int, note: String) {
-        viewModelScope.launch {
-            taskNotesOfflineRepository.updateTaskNote(id, note)
         }
     }
 
@@ -164,7 +149,7 @@ class TaskDetailsViewModel(
         }
     }
 
-    fun updateTask() {
+    fun updateTask(taskId: Long) {
         val updatedTask = uiState.value.taskDetails?.copy(
             title = state.title?.trim(),
             description = state.description?.trim(),
@@ -173,9 +158,46 @@ class TaskDetailsViewModel(
             timeDue = state.timeDue,
             type = state.type
         )
-        if (updatedTask != null && updatedTask.fieldId != -1) {
+        if (updatedTask != null && updatedTask.fieldId != -1L) {
             viewModelScope.launch {
-                taskDetailsOfflineRepository.updateTask(updatedTask)
+                _isUpdating.value = true
+                try {
+                    taskDetailsOfflineRepository.updateTask(updatedTask)
+
+                    taskPendingOperationRepository.deleteByTaskIdAndOperation(taskId, TaskPendingOperationType.UPDATE_TASK)
+
+                    taskPendingOperationRepository.insert(
+                        TaskPendingOperation(
+                            entityId = taskId,
+                            operation = TaskPendingOperationType.UPDATE_TASK,
+                            payload = Json.encodeToString(updatedTask.toNetwork()),
+                        )
+                    )
+                } finally {
+                    _isUpdating.value = false
+                }
+            }
+        }
+    }
+
+    fun onUpdateNote(note: String) {
+        viewModelScope.launch {
+            _isUpdating.value = true
+            try {
+                taskDetailsOfflineRepository.updateTaskNote(taskId, note)
+
+                taskPendingOperationRepository.deleteByTaskIdAndOperation(taskId,
+                    TaskPendingOperationType.UPDATE_NOTE)
+
+                taskPendingOperationRepository.insert(
+                    TaskPendingOperation(
+                        entityId = taskId,
+                        operation = TaskPendingOperationType.UPDATE_NOTE,
+                        payload = note,
+                    )
+                )
+            } finally {
+                _isUpdating.value = false
             }
         }
     }
@@ -188,7 +210,7 @@ class TaskDetailsViewModel(
         state = state.copy(description = value)
     }
 
-    fun onFieldChange(value: Int) {
+    fun onFieldChange(value: Long) {
         state = state.copy(fieldId = value)
     }
 
@@ -196,7 +218,7 @@ class TaskDetailsViewModel(
         state = state.copy(priority = value)
     }
 
-    fun onDateChange(value: LocalDate) {
+    fun onDateChange(value: Instant) {
         state = state.copy(timeDue = value)
     }
 
@@ -212,7 +234,7 @@ class TaskDetailsViewModel(
                     agriStationApplication().container.taskDetailsOfflineRepository,
                     agriStationApplication().container.fieldDetailsOfflineRepository,
                     agriStationApplication().container.alertDetailsOfflineRepository,
-                    agriStationApplication().container.taskNotesOfflineRepository
+                    agriStationApplication().container.taskPendingOperationRepository
                 )
             }
         }

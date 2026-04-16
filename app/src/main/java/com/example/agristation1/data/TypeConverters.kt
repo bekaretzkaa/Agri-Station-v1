@@ -10,10 +10,15 @@ import com.example.agristation1.data.chatDetails.MessageStatus
 import com.example.agristation1.data.fieldDetails.FieldConnectivity
 import com.example.agristation1.data.fieldDetails.FieldHealth
 import com.example.agristation1.data.fieldDetails.FieldLifecycle
-import com.example.agristation1.data.history.HistoryStatus
+import com.example.agristation1.data.sensorDetails.SensorBattery
+import com.example.agristation1.data.sensorDetails.SensorState
 import com.example.agristation1.data.taskDetails.TaskPriority
 import com.example.agristation1.data.taskDetails.TaskStatus
 import com.example.agristation1.data.taskDetails.TaskType
+import com.example.agristation1.network.alertNetwork.AlertPendingOperationStatus
+import com.example.agristation1.network.alertNetwork.AlertPendingOperationType
+import com.example.agristation1.network.taskNetwork.TaskPendingOperationStatus
+import com.example.agristation1.network.taskNetwork.TaskPendingOperationType
 import java.time.Instant
 import java.time.LocalDate
 
@@ -121,10 +126,43 @@ class MessageConverters {
     fun toMessageStatus(value: Int): MessageStatus = MessageStatus.fromCode(value)
 }
 
-class HistoryConverters {
+class PendingOperationConverters {
     @TypeConverter
-    fun fromHistoryStatus(value: HistoryStatus): Int = value.code
+    fun fromAlertPendingOperationType(value: AlertPendingOperationType): Int = value.code
 
     @TypeConverter
-    fun toHistoryStatus(value: Int): HistoryStatus = HistoryStatus.fromCode(value)
+    fun toAlertPendingOperationType(value: Int): AlertPendingOperationType? = AlertPendingOperationType.fromCode(value)
+
+    @TypeConverter
+    fun fromAlertPendingOperationStatus(value: AlertPendingOperationStatus): Int = value.code
+
+    @TypeConverter
+    fun toAlertPendingOperationStatus(value: Int): AlertPendingOperationStatus? = AlertPendingOperationStatus.fromCode(value)
+
+
+    @TypeConverter
+    fun fromTaskPendingOperationType(value: TaskPendingOperationType): Int = value.code
+
+    @TypeConverter
+    fun toTaskPendingOperationType(value: Int): TaskPendingOperationType? = TaskPendingOperationType.fromCode(value)
+
+    @TypeConverter
+    fun fromTaskPendingOperationStatus(value: TaskPendingOperationStatus): Int = value.code
+
+    @TypeConverter
+    fun toTaskPendingOperationStatus(value: Int): TaskPendingOperationStatus? = TaskPendingOperationStatus.fromCode(value)
+}
+
+class SensorConverters {
+    @TypeConverter
+    fun fromSensorBattery(value: SensorBattery): Int = value.code
+
+    @TypeConverter
+    fun toSensorBattery(value: Int): SensorBattery = SensorBattery.fromCode(value)
+
+    @TypeConverter
+    fun fromSensorState(value: SensorState): Int = value.code
+
+    @TypeConverter
+    fun toSensorState(value: Int): SensorState = SensorState.fromCode(value)
 }

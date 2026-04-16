@@ -8,7 +8,6 @@ object FakeFarmData {
     val farmDetails = FarmDetails(
         id = 1,
         farmName = "Green Valley Farm",
-        lastUpdate = Instant.ofEpochSecond(Instant.now().epochSecond),
         activeSensors = 22,
         totalSensors = 27
     )

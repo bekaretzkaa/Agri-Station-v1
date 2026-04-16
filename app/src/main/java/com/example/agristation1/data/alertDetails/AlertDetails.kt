@@ -25,9 +25,9 @@ import java.time.Instant
 )
 data class AlertDetails(
     @PrimaryKey
-    val id: Int,
+    val id: Long,
     @ColumnInfo(name = "field_id")
-    val fieldId: Int,
+    val fieldId: Long,
     val title: String?,
     val description: String?,
     val recommendation: String?,
