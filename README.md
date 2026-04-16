@@ -276,12 +276,3 @@ For best compatibility, export the video as `.mp4` with the H.264 codec and keep
 ## License
 
 MIT License. See [LICENSE](LICENSE) for details.
-
-This project was also built for educational purposes and as a portfolio piece for the Yandex School of Mobile Development application.
-
-
-**AgriStation** is an offline-first Android application for real-time farm monitoring. It aggregates data from IoT sensors, tracks field health, generates alerts and tasks, and includes a Gemini-powered AI assistant that can analyze the current state of the farm and suggest concrete actions.
-
-The project was built as a personal/portfolio Android project over **80+ hours** and focuses on practical offline-first architecture, reactive UI state, map-based field visualization, and AI-assisted decision support for agriculture.
-
----
