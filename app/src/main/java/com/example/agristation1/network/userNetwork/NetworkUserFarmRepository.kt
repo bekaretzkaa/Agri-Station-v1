@@ -1,5 +1,7 @@
 package com.example.agristation1.network.userNetwork
 
+import javax.inject.Inject
+
 interface NetworkUserFarmRepository {
 
     suspend fun getFarmDetails(): FarmDetailsNetwork
@@ -8,7 +10,7 @@ interface NetworkUserFarmRepository {
 
 }
 
-class NetworkUserFarmRepositoryImpl (
+class NetworkUserFarmRepositoryImpl @Inject constructor(
     private val userFarmApiService: UserFarmApiService
 ) : NetworkUserFarmRepository {
 

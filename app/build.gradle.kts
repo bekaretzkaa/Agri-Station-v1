@@ -11,6 +11,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.hilt) // <-- ДОБАВИТЬ ЭТУ СТРОКУ
 }
 
 android {
@@ -123,4 +124,9 @@ dependencies {
 
     // Data Store
     implementation("androidx.datastore:datastore-preferences:1.0.0")
+
+    // Hilt
+    implementation(libs.hilt.android)  // <-- ДОБАВИТЬ
+    ksp(libs.hilt.compiler)           // <-- ДОБАВИТЬ
+    implementation(libs.androidx.hilt.navigation.compose)
 }

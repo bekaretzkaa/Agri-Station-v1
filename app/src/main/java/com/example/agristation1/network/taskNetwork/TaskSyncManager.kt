@@ -4,6 +4,7 @@ import android.util.Log
 import com.example.agristation1.data.SyncResult
 import com.example.agristation1.data.taskDetails.TaskDetails
 import com.example.agristation1.data.taskDetails.TaskDetailsOfflineRepository
+import com.example.agristation1.data.taskDetails.TaskDetailsRepository
 import com.example.agristation1.data.taskDetails.TaskPriority
 import com.example.agristation1.data.taskDetails.TaskStatus
 import com.example.agristation1.data.taskDetails.TaskType
@@ -11,14 +12,31 @@ import kotlinx.serialization.json.Json
 import retrofit2.HttpException
 import java.io.IOException
 import java.time.Instant
+import javax.inject.Inject
 
-class TaskSyncManager(
-    private val taskDetailsOfflineRepository: TaskDetailsOfflineRepository,
+interface TaskSyncManager {
+    suspend fun sync(): SyncResult
+    suspend fun pushPendingOperations(): Int
+    suspend fun pushStatusUpdate(op: TaskPendingOperation): Boolean
+    suspend fun pushNoteUpdate(op: TaskPendingOperation): Boolean
+    suspend fun pushUpdateTask(op: TaskPendingOperation): Boolean
+    suspend fun pushDeleteTask(op: TaskPendingOperation): Boolean
+    suspend fun pushCreateTask(op: TaskPendingOperation): Boolean
+    suspend fun fetchAndMerge()
+    suspend fun handleDisappearedTasks(tasksIds: Set<Long>)
+    suspend fun mergeTask(
+        remoteTask: TaskDetailsNetwork,
+        localTasks: List<TaskDetails>
+    )
+}
+
+class TaskSyncManagerImpl @Inject constructor(
+    private val taskDetailsOfflineRepository: TaskDetailsRepository,
     private val taskPendingOperationDao: TaskPendingOperationDao,
-    private val networkTaskRepositoryImpl: NetworkTaskRepositoryImpl
-) {
+    private val networkTaskRepositoryImpl: NetworkTaskRepository
+): TaskSyncManager {
 
-    suspend fun sync(): SyncResult {
+    override suspend fun sync(): SyncResult {
         return try {
             val failedOps = pushPendingOperations()
 
@@ -39,7 +57,7 @@ class TaskSyncManager(
 
 
     // PUSH TASK OPERATIONS TO SERVER
-    private suspend fun pushPendingOperations(): Int {
+    override suspend fun pushPendingOperations(): Int {
         val pending = taskPendingOperationDao.getAllPending()
         var failedOps = 0
 
@@ -63,7 +81,7 @@ class TaskSyncManager(
 
         return failedOps
     }
-    private suspend fun pushStatusUpdate(op: TaskPendingOperation): Boolean {
+    override suspend fun pushStatusUpdate(op: TaskPendingOperation): Boolean {
         return try {
             val statusCode = op.payload.toIntOrNull() ?: return false
             val result = networkTaskRepositoryImpl.updateStatus(op.entityId, statusCode)
@@ -73,7 +91,7 @@ class TaskSyncManager(
             false
         }
     }
-    private suspend fun pushNoteUpdate(op: TaskPendingOperation): Boolean {
+    override suspend fun pushNoteUpdate(op: TaskPendingOperation): Boolean {
         return try {
             val result = networkTaskRepositoryImpl.updateNote(op.entityId, op.payload)
 
@@ -82,7 +100,7 @@ class TaskSyncManager(
             false
         }
     }
-    private suspend fun pushUpdateTask(op: TaskPendingOperation): Boolean {
+    override suspend fun pushUpdateTask(op: TaskPendingOperation): Boolean {
         return try {
             val networkTask = Json.decodeFromString<TaskDetailsNetwork>(op.payload)
             val result = networkTaskRepositoryImpl.updateTask(op.entityId, networkTask)
@@ -92,7 +110,7 @@ class TaskSyncManager(
             false
         }
     }
-    private suspend fun pushDeleteTask(op: TaskPendingOperation): Boolean {
+    override suspend fun pushDeleteTask(op: TaskPendingOperation): Boolean {
         return try {
             val result = networkTaskRepositoryImpl.deleteTask(op.entityId)
 
@@ -101,7 +119,7 @@ class TaskSyncManager(
             false
         }
     }
-    private suspend fun pushCreateTask(op: TaskPendingOperation): Boolean {
+    override suspend fun pushCreateTask(op: TaskPendingOperation): Boolean {
         return try {
             val networkTask = Json.decodeFromString<TaskDetailsNetwork>(op.payload)
             val result = networkTaskRepositoryImpl.createTask(networkTask)
@@ -115,7 +133,7 @@ class TaskSyncManager(
 
     // FETCH AND MERGE SERVER AND LOCAL DATA
 
-    private suspend fun fetchAndMerge() {
+    override suspend fun fetchAndMerge() {
         val remoteTasks = networkTaskRepositoryImpl.getTasks().tasks.orEmpty()
         val localTasks = taskDetailsOfflineRepository.getAllTasksList()
 
@@ -129,7 +147,7 @@ class TaskSyncManager(
             mergeTask(remoteTask, localTasks)
         }
     }
-    private suspend fun handleDisappearedTasks(tasksIds: Set<Long>) {
+    override suspend fun handleDisappearedTasks(tasksIds: Set<Long>) {
         for (taskId in tasksIds) {
             val hasPending = taskPendingOperationDao.hasPendingForTask(taskId) > 0
             if (hasPending) continue
@@ -137,7 +155,7 @@ class TaskSyncManager(
             taskDetailsOfflineRepository.deleteTask(taskId)
         }
     }
-    private suspend fun mergeTask(
+    override suspend fun mergeTask(
         remoteTask: TaskDetailsNetwork,
         localTasks: List<TaskDetails>
     ) {

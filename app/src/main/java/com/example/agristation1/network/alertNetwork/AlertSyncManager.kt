@@ -4,24 +4,46 @@ import android.util.Log
 import com.example.agristation1.data.SyncResult
 import com.example.agristation1.data.alertDetails.AlertDetails
 import com.example.agristation1.data.alertDetails.AlertDetailsOfflineRepository
+import com.example.agristation1.data.alertDetails.AlertDetailsRepository
 import com.example.agristation1.data.alertDetails.AlertLifecycle
 import com.example.agristation1.data.alertDetails.AlertSeverity
 import com.example.agristation1.data.alertDetails.AlertType
 import com.example.agristation1.data.alertDetails.AlertVerification
 import com.example.agristation1.data.taskDetails.TaskDetailsOfflineRepository
+import com.example.agristation1.data.taskDetails.TaskDetailsRepository
 import retrofit2.HttpException
 import java.io.IOException
 import java.lang.Exception
 import java.time.Instant
+import javax.inject.Inject
 
-class AlertSyncManager(
-    private val alertDetailsOfflineRepository: AlertDetailsOfflineRepository,
-    private val taskDetailsOfflineRepository: TaskDetailsOfflineRepository,
+interface AlertSyncManager {
+    suspend fun sync(): SyncResult
+
+    suspend fun pushPendingOperations(): Int
+
+    suspend fun pushLifecycleUpdate(op: AlertPendingOperation): Boolean
+
+    suspend fun pushDeleteAlert(op: AlertPendingOperation): Boolean
+
+    suspend fun fetchAndMerge()
+
+    suspend fun handleDisappearedAlerts(alertsIds: Set<Long>)
+
+    suspend fun mergeAlert(
+        remoteAlert: AlertDetailsNetwork,
+        localAlerts: List<AlertDetails>
+    )
+}
+
+class AlertSyncManagerImpl @Inject constructor(
+    private val alertDetailsOfflineRepository: AlertDetailsRepository,
+    private val taskDetailsOfflineRepository: TaskDetailsRepository,
     private val alertPendingOperationDao: AlertPendingOperationDao,
     private val networkAlertRepository: NetworkAlertRepository
-) {
+): AlertSyncManager {
 
-    suspend fun sync(): SyncResult {
+    override suspend fun sync(): SyncResult {
         return try {
             val failedOps = pushPendingOperations()
 
@@ -41,7 +63,7 @@ class AlertSyncManager(
     }
 
 
-    private suspend fun pushPendingOperations(): Int {
+    override suspend fun pushPendingOperations(): Int {
         val pending = alertPendingOperationDao.getAllPending()
         var failedOps = 0
 
@@ -66,7 +88,7 @@ class AlertSyncManager(
         return failedOps
     }
 
-    private suspend fun pushLifecycleUpdate(op: AlertPendingOperation): Boolean {
+    override suspend fun pushLifecycleUpdate(op: AlertPendingOperation): Boolean {
         return try {
             val lifecycleCode = op.payload.toIntOrNull() ?: return false
             val result = networkAlertRepository.updateLifecycle(op.entityId, lifecycleCode)
@@ -78,7 +100,7 @@ class AlertSyncManager(
         }
     }
 
-    private suspend fun pushDeleteAlert(op: AlertPendingOperation): Boolean {
+    override suspend fun pushDeleteAlert(op: AlertPendingOperation): Boolean {
         return try {
             val result = networkAlertRepository.deleteAlert(op.entityId)
             Log.d("AlertSyncManager", "DELETE ALERT RESULT: $result")
@@ -90,7 +112,7 @@ class AlertSyncManager(
     }
 
 
-    private suspend fun fetchAndMerge() {
+    override suspend fun fetchAndMerge() {
         val remoteAlerts = networkAlertRepository.getAlerts().alerts.orEmpty()
         val localAlerts = alertDetailsOfflineRepository.getAllAlertsList()
 
@@ -105,7 +127,7 @@ class AlertSyncManager(
         }
     }
 
-    private suspend fun handleDisappearedAlerts(alertsIds: Set<Long>) {
+    override suspend fun handleDisappearedAlerts(alertsIds: Set<Long>) {
         for (alertId in alertsIds) {
             val hasPending = alertPendingOperationDao.hasPendingForAlert(alertId) > 0
             if (hasPending) continue
@@ -115,7 +137,7 @@ class AlertSyncManager(
         }
     }
 
-    private suspend fun mergeAlert(
+    override suspend fun mergeAlert(
         remoteAlert: AlertDetailsNetwork,
         localAlerts: List<AlertDetails>
     ) {

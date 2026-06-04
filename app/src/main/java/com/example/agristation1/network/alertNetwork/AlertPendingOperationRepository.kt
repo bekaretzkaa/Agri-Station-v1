@@ -1,5 +1,7 @@
 package com.example.agristation1.network.alertNetwork
 
+import javax.inject.Inject
+
 interface AlertPendingOperationRepository {
     suspend fun insert(operation: AlertPendingOperation)
 
@@ -21,7 +23,7 @@ interface AlertPendingOperationRepository {
     )
 }
 
-class AlertPendingOperationRepositoryImpl(
+class AlertPendingOperationRepositoryImpl @Inject constructor(
     private val dao: AlertPendingOperationDao
 ) : AlertPendingOperationRepository {
 

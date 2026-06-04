@@ -1,6 +1,7 @@
 package com.example.agristation1.data.taskDetails
 
 import kotlinx.coroutines.flow.Flow
+import javax.inject.Inject
 
 interface TaskDetailsRepository {
     fun getAllTasksStream(): Flow<List<TaskDetails>>
@@ -26,9 +27,11 @@ interface TaskDetailsRepository {
     suspend fun updateTaskNote(taskId: Long, notes: String)
 
     suspend fun updateTaskStatus(taskId: Long, status: Int)
+
+    suspend fun detachFromDeletedAlert(alertId: Long)
 }
 
-class TaskDetailsOfflineRepository(
+class TaskDetailsOfflineRepository @Inject constructor(
     private val taskDetailsDao: TaskDetailsDao
 ) : TaskDetailsRepository {
 
@@ -72,7 +75,7 @@ class TaskDetailsOfflineRepository(
         taskDetailsDao.updateTask(task)
     }
 
-    suspend fun detachFromDeletedAlert(alertId: Long) {
+    override suspend fun detachFromDeletedAlert(alertId: Long) {
         taskDetailsDao.detachFromDeletedAlert(alertId)
     }
 

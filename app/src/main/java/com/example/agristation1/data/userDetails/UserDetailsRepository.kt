@@ -1,6 +1,7 @@
 package com.example.agristation1.data.userDetails
 
 import kotlinx.coroutines.flow.Flow
+import javax.inject.Inject
 
 interface UserDetailsRepository {
 
@@ -10,7 +11,7 @@ interface UserDetailsRepository {
 
 }
 
-class UserDetailsOfflineRepository(
+class UserDetailsOfflineRepository @Inject constructor(
     private val userDetailsDao: UserDetailsDao
 ) : UserDetailsRepository {
 

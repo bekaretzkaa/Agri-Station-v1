@@ -14,8 +14,10 @@ import com.example.agristation1.data.SyncResult
 import com.example.agristation1.data.UserPreferencesRepository
 import com.example.agristation1.data.fieldDetails.FieldDetails
 import com.example.agristation1.data.fieldDetails.FieldDetailsOfflineRepository
+import com.example.agristation1.data.fieldDetails.FieldDetailsRepository
 import com.example.agristation1.data.taskDetails.TaskDetails
 import com.example.agristation1.data.taskDetails.TaskDetailsOfflineRepository
+import com.example.agristation1.data.taskDetails.TaskDetailsRepository
 import com.example.agristation1.data.taskDetails.TaskPriority
 import com.example.agristation1.data.taskDetails.TaskStatus
 import com.example.agristation1.data.taskDetails.TaskType
@@ -24,6 +26,7 @@ import com.example.agristation1.network.taskNetwork.TaskPendingOperationReposito
 import com.example.agristation1.network.taskNetwork.TaskPendingOperationType
 import com.example.agristation1.network.taskNetwork.TaskSyncManager
 import com.example.agristation1.network.taskNetwork.toNetwork
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -36,6 +39,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.time.Instant
 import java.time.LocalDate
+import javax.inject.Inject
 
 sealed interface TaskFilter {
     data object All : TaskFilter
@@ -67,9 +71,10 @@ data class TaskFormState(
     val type: TaskType = TaskType.UNKNOWN
 )
 
-class TaskViewModel(
-    private val taskDetailsOfflineRepository: TaskDetailsOfflineRepository,
-    private val fieldDetailsOfflineRepository: FieldDetailsOfflineRepository,
+@HiltViewModel
+class TaskViewModel @Inject constructor(
+    private val taskDetailsOfflineRepository: TaskDetailsRepository,
+    private val fieldDetailsOfflineRepository: FieldDetailsRepository,
     private val taskPendingOperationRepository: TaskPendingOperationRepository,
     private val syncOrchestrator: SyncOrchestrator,
     private val userPreferencesRepository: UserPreferencesRepository
@@ -234,19 +239,5 @@ class TaskViewModel(
 
     fun clearRefreshError() {
         _refreshError.value = null
-    }
-
-    companion object {
-        val factory: ViewModelProvider.Factory = viewModelFactory {
-            initializer {
-                TaskViewModel(
-                    agriStationApplication().container.taskDetailsOfflineRepository,
-                    agriStationApplication().container.fieldDetailsOfflineRepository,
-                    agriStationApplication().container.taskPendingOperationRepository,
-                    agriStationApplication().container.syncOrchestrator,
-                    agriStationApplication().userPreferencesRepository
-                )
-            }
-        }
     }
 }

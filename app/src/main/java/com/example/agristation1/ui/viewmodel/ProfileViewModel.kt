@@ -8,15 +8,19 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.agristation1.data.UserPreferencesRepository
 import com.example.agristation1.data.farmDetails.FarmDetails
 import com.example.agristation1.data.farmDetails.FarmDetailsOfflineRepository
+import com.example.agristation1.data.farmDetails.FarmDetailsRepository
 import com.example.agristation1.data.historyDetails.HistoryOfflineRepository
 import com.example.agristation1.data.userDetails.UserDetails
 import com.example.agristation1.data.userDetails.UserDetailsOfflineRepository
+import com.example.agristation1.data.userDetails.UserDetailsRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 data class ProfileUiState(
     val userDetails: UserDetails? = null,
@@ -24,10 +28,11 @@ data class ProfileUiState(
     val farmDetails: FarmDetails? = null
 )
 
-class ProfileViewModel(
+@HiltViewModel
+class ProfileViewModel @Inject constructor(
     private val userPreferencesRepository: UserPreferencesRepository,
-    private val userDetailsOfflineRepository: UserDetailsOfflineRepository,
-    private val farmDetailsOfflineRepository: FarmDetailsOfflineRepository
+    private val userDetailsOfflineRepository: UserDetailsRepository,
+    private val farmDetailsOfflineRepository: FarmDetailsRepository
 ) : ViewModel() {
 
     val uiState: StateFlow<ProfileUiState> = combine(
@@ -49,18 +54,6 @@ class ProfileViewModel(
     fun changeTheme(isLightTheme: Boolean) {
         viewModelScope.launch {
             userPreferencesRepository.saveIsLightTheme(isLightTheme)
-        }
-    }
-
-    companion object {
-        val factory: ViewModelProvider.Factory = viewModelFactory {
-            initializer {
-                ProfileViewModel(
-                    agriStationApplication().userPreferencesRepository,
-                    agriStationApplication().container.userDetailsOfflineRepository,
-                    agriStationApplication().container.farmDetailsOfflineRepository
-                )
-            }
         }
     }
 }

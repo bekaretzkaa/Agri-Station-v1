@@ -14,12 +14,15 @@ import com.example.agristation1.data.AgriStationDatabase
 import com.example.agristation1.data.taskDetails.TaskDetails
 import com.example.agristation1.data.alertDetails.AlertDetails
 import com.example.agristation1.data.alertDetails.AlertDetailsOfflineRepository
+import com.example.agristation1.data.alertDetails.AlertDetailsRepository
 import com.example.agristation1.data.alertDetails.AlertLifecycle
 import com.example.agristation1.data.alertDetails.AlertSeverity
 import com.example.agristation1.data.alertDetails.AlertType
 import com.example.agristation1.data.fieldDetails.FieldDetails
 import com.example.agristation1.data.fieldDetails.FieldDetailsOfflineRepository
+import com.example.agristation1.data.fieldDetails.FieldDetailsRepository
 import com.example.agristation1.data.taskDetails.TaskDetailsOfflineRepository
+import com.example.agristation1.data.taskDetails.TaskDetailsRepository
 import com.example.agristation1.data.taskDetails.TaskPriority
 import com.example.agristation1.data.taskDetails.TaskStatus
 import com.example.agristation1.data.taskDetails.TaskType
@@ -31,6 +34,7 @@ import com.example.agristation1.network.taskNetwork.TaskPendingOperation
 import com.example.agristation1.network.taskNetwork.TaskPendingOperationRepository
 import com.example.agristation1.network.taskNetwork.TaskPendingOperationType
 import com.example.agristation1.network.taskNetwork.toNetwork
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -43,6 +47,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.time.Instant
 import java.time.LocalDate
+import javax.inject.Inject
 
 data class AlertDetailsUiState(
     val alertDetails: AlertDetails? = null,
@@ -52,11 +57,12 @@ data class AlertDetailsUiState(
     val fields: List<FieldDetails> = emptyList()
 )
 
-class AlertDetailsViewModel(
+@HiltViewModel
+class AlertDetailsViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
-    private val alertDetailsOfflineRepository: AlertDetailsOfflineRepository,
-    private val fieldDetailsOfflineRepository: FieldDetailsOfflineRepository,
-    private val taskDetailsOfflineRepository: TaskDetailsOfflineRepository,
+    private val alertDetailsOfflineRepository: AlertDetailsRepository,
+    private val fieldDetailsOfflineRepository: FieldDetailsRepository,
+    private val taskDetailsOfflineRepository: TaskDetailsRepository,
     private val alertPendingOperationRepository: AlertPendingOperationRepository,
     private val taskPendingOperationRepository: TaskPendingOperationRepository
 ): ViewModel() {
@@ -220,20 +226,5 @@ class AlertDetailsViewModel(
 
     fun onTypeChange(value: TaskType) {
         state = state.copy(type = value)
-    }
-
-    companion object {
-        val factory: ViewModelProvider.Factory = viewModelFactory {
-            initializer {
-                AlertDetailsViewModel(
-                    this.createSavedStateHandle(),
-                    agriStationApplication().container.alertDetailsOfflineRepository,
-                    agriStationApplication().container.fieldDetailsOfflineRepository,
-                    agriStationApplication().container.taskDetailsOfflineRepository,
-                    agriStationApplication().container.alertPendingOperationRepository,
-                    agriStationApplication().container.taskPendingOperationRepository
-                )
-            }
-        }
     }
 }

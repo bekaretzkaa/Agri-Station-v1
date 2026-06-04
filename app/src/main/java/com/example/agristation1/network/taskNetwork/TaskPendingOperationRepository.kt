@@ -1,5 +1,7 @@
 package com.example.agristation1.network.taskNetwork
 
+import javax.inject.Inject
+
 interface TaskPendingOperationRepository {
     suspend fun insert(operation: TaskPendingOperation)
 
@@ -25,7 +27,7 @@ interface TaskPendingOperationRepository {
     suspend fun countAllTaskPending(): Int
 }
 
-class TaskPendingOperationRepositoryImpl(
+class TaskPendingOperationRepositoryImpl @Inject constructor(
     private val dao: TaskPendingOperationDao
 ) : TaskPendingOperationRepository {
 

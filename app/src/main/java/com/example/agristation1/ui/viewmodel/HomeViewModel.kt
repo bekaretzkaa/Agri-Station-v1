@@ -12,11 +12,16 @@ import com.example.agristation1.data.UserPreferencesRepository
 import com.example.agristation1.data.alertDetails.AlertDetails
 import com.example.agristation1.data.fieldDetails.FieldDetails
 import com.example.agristation1.data.alertDetails.AlertDetailsOfflineRepository
+import com.example.agristation1.data.alertDetails.AlertDetailsRepository
 import com.example.agristation1.data.farmDetails.FarmDetails
 import com.example.agristation1.data.farmDetails.FarmDetailsOfflineRepository
+import com.example.agristation1.data.farmDetails.FarmDetailsRepository
 import com.example.agristation1.data.fieldDetails.FieldDetailsOfflineRepository
+import com.example.agristation1.data.fieldDetails.FieldDetailsRepository
 import com.example.agristation1.data.taskDetails.TaskDetails
 import com.example.agristation1.data.taskDetails.TaskDetailsOfflineRepository
+import com.example.agristation1.data.taskDetails.TaskDetailsRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -27,6 +32,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Instant
+import javax.inject.Inject
 
 data class HomeUiState(
     val farmDetails: FarmDetails? = null,
@@ -38,11 +44,12 @@ data class HomeUiState(
     val lastSync: Instant = Instant.now()
     )
 
-class HomeViewModel(
-    private val farmDetailsOfflineRepository: FarmDetailsOfflineRepository,
-    private val fieldDetailsOfflineRepository: FieldDetailsOfflineRepository,
-    private val alertDetailsOfflineRepository: AlertDetailsOfflineRepository,
-    private val taskDetailsOfflineRepository: TaskDetailsOfflineRepository,
+@HiltViewModel
+class HomeViewModel @Inject constructor(
+    private val farmDetailsOfflineRepository: FarmDetailsRepository,
+    private val fieldDetailsOfflineRepository: FieldDetailsRepository,
+    private val alertDetailsOfflineRepository: AlertDetailsRepository,
+    private val taskDetailsOfflineRepository: TaskDetailsRepository,
     private val syncOrchestrator: SyncOrchestrator,
     private val userPreferencesRepository: UserPreferencesRepository
 ): ViewModel() {
@@ -112,20 +119,5 @@ class HomeViewModel(
 
     fun clearRefreshError() {
         _refreshError.value = null
-    }
-
-    companion object {
-        val factory: ViewModelProvider.Factory = viewModelFactory {
-            initializer {
-                HomeViewModel(
-                    agriStationApplication().container.farmDetailsOfflineRepository,
-                    agriStationApplication().container.fieldDetailsOfflineRepository,
-                    agriStationApplication().container.alertDetailsOfflineRepository,
-                    agriStationApplication().container.taskDetailsOfflineRepository,
-                    agriStationApplication().container.syncOrchestrator,
-                    agriStationApplication().userPreferencesRepository
-                )
-            }
-        }
     }
 }

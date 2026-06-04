@@ -2,21 +2,32 @@ package com.example.agristation1.network.gemini
 
 import com.example.agristation1.BuildConfig
 import com.example.agristation1.data.alertDetails.AlertDetailsOfflineRepository
+import com.example.agristation1.data.alertDetails.AlertDetailsRepository
 import com.example.agristation1.data.chatDetails.ChatDetailsOfflineRepository
+import com.example.agristation1.data.chatDetails.ChatDetailsRepository
 import com.example.agristation1.data.chatDetails.MessageRole
 import com.example.agristation1.data.chatDetails.toText
 import com.example.agristation1.data.fieldDetails.FieldDetailsOfflineRepository
+import com.example.agristation1.data.fieldDetails.FieldDetailsRepository
 import com.example.agristation1.data.taskDetails.TaskDetailsOfflineRepository
+import com.example.agristation1.data.taskDetails.TaskDetailsRepository
+import javax.inject.Inject
 
-class GeminiRepository(
-    private val fieldDetailsOfflineRepository: FieldDetailsOfflineRepository,
-    private val alertDetailsOfflineRepository: AlertDetailsOfflineRepository,
-    private val taskDetailsOfflineRepository: TaskDetailsOfflineRepository,
-    private val chatDetailsOfflineRepository: ChatDetailsOfflineRepository,
+interface GeminiRepository {
+
+    suspend fun sendMessage(chatId: Long, userText: String): String
+
+}
+
+class GeminiRepositoryImpl @Inject constructor(
+    private val fieldDetailsOfflineRepository: FieldDetailsRepository,
+    private val alertDetailsOfflineRepository: AlertDetailsRepository,
+    private val taskDetailsOfflineRepository: TaskDetailsRepository,
+    private val chatDetailsOfflineRepository: ChatDetailsRepository,
     private val geminiApiService: GeminiApiService
-) {
+) : GeminiRepository {
 
-    suspend fun sendMessage(chatId: Long, userText: String): String {
+    override suspend fun sendMessage(chatId: Long, userText: String): String {
 
         val fields = fieldDetailsOfflineRepository.getAllFieldsList()
         val alerts = alertDetailsOfflineRepository.getAllAlertsList()

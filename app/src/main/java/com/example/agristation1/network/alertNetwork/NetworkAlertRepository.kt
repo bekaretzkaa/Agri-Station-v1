@@ -1,6 +1,7 @@
 package com.example.agristation1.network.alertNetwork
 
 import retrofit2.HttpException
+import javax.inject.Inject
 import kotlin.math.sin
 
 interface NetworkAlertRepository {
@@ -9,7 +10,7 @@ interface NetworkAlertRepository {
     suspend fun deleteAlert(alertId: Long): AlertSyncResponse
 }
 
-class NetworkAlertRepositoryImpl(
+class NetworkAlertRepositoryImpl @Inject constructor(
     private val alertApiService: AlertApiService
 ) : NetworkAlertRepository {
 

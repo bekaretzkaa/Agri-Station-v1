@@ -2,6 +2,7 @@ package com.example.agristation1.data.alertDetails
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.toList
+import javax.inject.Inject
 
 interface AlertDetailsRepository {
     fun getAllAlertsStream(): Flow<List<AlertDetails>>
@@ -13,9 +14,13 @@ interface AlertDetailsRepository {
     suspend fun deleteAlert(alertId: Long)
 
     fun getImmediateAttentionAlertsStream(): Flow<List<AlertDetails>>
+
+    suspend fun getAllAlertsList(): List<AlertDetails>
+    suspend fun upsertAlert(alert: AlertDetails)
+    suspend fun updateLifecycle(alertId: Long, lifecycle: AlertLifecycle)
 }
 
-class AlertDetailsOfflineRepository(
+class AlertDetailsOfflineRepository @Inject constructor(
     private val alertDetailsDao: AlertDetailsDao
 ) : AlertDetailsRepository {
 
@@ -35,15 +40,15 @@ class AlertDetailsOfflineRepository(
         alertDetailsDao.deleteAlert(alertId)
     }
 
-    suspend fun getAllAlertsList(): List<AlertDetails> {
+    override suspend fun getAllAlertsList(): List<AlertDetails> {
         return alertDetailsDao.getAlertsList()
     }
 
-    suspend fun upsertAlert(alert: AlertDetails) {
+    override suspend fun upsertAlert(alert: AlertDetails) {
         alertDetailsDao.upsert(alert)
     }
 
-    suspend fun updateLifecycle(alertId: Long, lifecycle: AlertLifecycle) {
+    override suspend fun updateLifecycle(alertId: Long, lifecycle: AlertLifecycle) {
         alertDetailsDao.updateLifecycle(alertId, lifecycle.code)
     }
 

@@ -12,16 +12,21 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.agristation1.AgriStationApplication
 import com.example.agristation1.data.alertDetails.AlertDetails
 import com.example.agristation1.data.alertDetails.AlertDetailsOfflineRepository
+import com.example.agristation1.data.alertDetails.AlertDetailsRepository
 import com.example.agristation1.data.fieldDetails.FieldDetails
 import com.example.agristation1.data.fieldDetails.FieldDetailsOfflineRepository
+import com.example.agristation1.data.fieldDetails.FieldDetailsRepository
 import com.example.agristation1.data.fieldDetails.toLatLngList
 import com.example.agristation1.data.sensorDetails.SensorDetails
 import com.example.agristation1.data.sensorDetails.SensorDetailsOfflineRepository
+import com.example.agristation1.data.sensorDetails.SensorDetailsRepository
 import com.google.android.gms.maps.model.LatLng
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import javax.inject.Inject
 
 data class FieldDetailsUiState(
     val fieldDetails: FieldDetails? = null,
@@ -30,11 +35,12 @@ data class FieldDetailsUiState(
     val sensorDetails: List<SensorDetails> = emptyList()
 )
 
-class FieldDetailsViewModel(
+@HiltViewModel
+class FieldDetailsViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
-    private val fieldDetailsOfflineRepository: FieldDetailsOfflineRepository,
-    private val alertDetailsOfflineRepository: AlertDetailsOfflineRepository,
-    private val sensorDetailsOfflineRepository: SensorDetailsOfflineRepository
+    private val fieldDetailsOfflineRepository: FieldDetailsRepository,
+    private val alertDetailsOfflineRepository: AlertDetailsRepository,
+    private val sensorDetailsOfflineRepository: SensorDetailsRepository
 ): ViewModel() {
 
     private val fieldId: Long = savedStateHandle.get<String>("fieldId")?.toLongOrNull() ?: 0L
@@ -59,19 +65,6 @@ class FieldDetailsViewModel(
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = FieldDetailsUiState()
         )
-
-    companion object {
-        val factory: ViewModelProvider.Factory = viewModelFactory {
-            initializer {
-                FieldDetailsViewModel(
-                    this.createSavedStateHandle(),
-                    agriStationApplication().container.fieldDetailsOfflineRepository,
-                    agriStationApplication().container.alertDetailsOfflineRepository,
-                    agriStationApplication().container.sensorDetailsOfflineRepository
-                )
-            }
-        }
-    }
 }
 
 fun CreationExtras.agriStationApplication(): AgriStationApplication =

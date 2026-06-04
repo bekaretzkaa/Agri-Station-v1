@@ -6,6 +6,7 @@ import com.example.agristation1.data.SyncResult
 import com.example.agristation1.data.fieldDetails.FieldConnectivity
 import com.example.agristation1.data.fieldDetails.FieldDetails
 import com.example.agristation1.data.fieldDetails.FieldDetailsOfflineRepository
+import com.example.agristation1.data.fieldDetails.FieldDetailsRepository
 import com.example.agristation1.data.fieldDetails.FieldHealth
 import com.example.agristation1.data.fieldDetails.FieldLifecycle
 import com.example.agristation1.data.fieldDetails.FieldPoints
@@ -15,15 +16,22 @@ import retrofit2.HttpException
 import java.io.IOException
 import java.lang.Exception
 import java.time.Instant
+import javax.inject.Inject
 
-class FieldSyncManager(
-    private val fieldDetailsRepository: FieldDetailsOfflineRepository,
+interface FieldSyncManager {
+
+    suspend fun sync(since: Long): SyncResult
+
+}
+
+class FieldSyncManagerImpl @Inject constructor(
+    private val fieldDetailsRepository: FieldDetailsRepository,
     private val historyOfflineRepository: HistoryOfflineRepository,
     private val fieldRepository: NetworkFieldRepository,
     private val db: AgriStationDatabase
-) {
+): FieldSyncManager {
 
-    suspend fun sync(since: Long): SyncResult {
+    override suspend fun sync(since: Long): SyncResult {
         return try {
 
             val response = fieldRepository.getFields(since)

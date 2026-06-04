@@ -1,6 +1,7 @@
 package com.example.agristation1.data.farmDetails
 
 import kotlinx.coroutines.flow.Flow
+import javax.inject.Inject
 
 interface FarmDetailsRepository {
     fun getFarmDetailsStream(): Flow<FarmDetails?>
@@ -8,7 +9,7 @@ interface FarmDetailsRepository {
     suspend fun upsertFarmDetails(farmDetails: FarmDetails)
 }
 
-class FarmDetailsOfflineRepository(
+class FarmDetailsOfflineRepository @Inject constructor(
     private val farmDetailsDao: FarmDetailsDao
 ) : FarmDetailsRepository {
 

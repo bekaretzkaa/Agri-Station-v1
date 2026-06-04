@@ -9,7 +9,9 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.agristation1.data.fieldDetails.FieldDetails
 import com.example.agristation1.data.fieldDetails.FieldDetailsOfflineRepository
+import com.example.agristation1.data.fieldDetails.FieldDetailsRepository
 import com.example.agristation1.data.historyDetails.HistoryOfflineRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -20,6 +22,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 sealed interface TemperatureFilter {
     data object Both : TemperatureFilter
@@ -65,9 +68,10 @@ data class LuxChartUiState(
     val data: List<Double> = emptyList()
 )
 
-class StatisticsViewModel(
+@HiltViewModel
+class StatisticsViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
-    private val fieldDetailsOfflineRepository: FieldDetailsOfflineRepository,
+    private val fieldDetailsOfflineRepository: FieldDetailsRepository,
     private val historyOfflineRepository: HistoryOfflineRepository
 ) : ViewModel() {
 
@@ -167,19 +171,6 @@ class StatisticsViewModel(
     fun onMoistureFilterChange(filter: MoistureFilter) { moistureFilter.value = filter }
     fun onMoisturePeriodChange(period: PeriodFilter) { moisturePeriod.value = period }
     fun onLuxPeriodChange(period: PeriodFilter) { luxPeriod.value = period }
-
-
-    companion object {
-        val factory: ViewModelProvider.Factory = viewModelFactory {
-            initializer {
-                StatisticsViewModel(
-                    this.createSavedStateHandle(),
-                    agriStationApplication().container.fieldDetailsOfflineRepository,
-                    agriStationApplication().container.historyOfflineRepository
-                )
-            }
-        }
-    }
 }
 
 fun PeriodFilter.toSince(): Long {

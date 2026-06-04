@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -36,19 +37,14 @@ import com.example.agristation1.ui.viewmodel.TaskViewModel
 
 @Composable
 fun BottomNavGraph(navController: NavHostController, padding: Dp) {
-    val alertViewModel: AlertViewModel = viewModel(factory = AlertViewModel.factory)
-    val fieldViewModel: FieldViewModel = viewModel(factory = FieldViewModel.factory)
-    val homeViewModel: HomeViewModel = viewModel(factory = HomeViewModel.factory)
-    val taskViewModel: TaskViewModel = viewModel(factory = TaskViewModel.factory)
-    val chatViewModel: ChatViewModel = viewModel(factory = ChatViewModel.factory)
-    val profileViewModel: ProfileViewModel = viewModel(factory = ProfileViewModel.factory)
-
     NavHost(
         navController = navController,
         startDestination = AppRoute.Home.route,
         modifier = Modifier.padding(bottom = padding)
     ) {
         composable(route = AppRoute.Home.route) {
+            val homeViewModel: HomeViewModel = hiltViewModel()
+
             HomeMainScreen(
                 viewModel = homeViewModel,
                 onFieldClick = { fieldId ->
@@ -62,6 +58,8 @@ fun BottomNavGraph(navController: NavHostController, padding: Dp) {
             )
         }
         composable(route = AppRoute.Fields.route) {
+            val fieldViewModel: FieldViewModel = hiltViewModel()
+
             FieldsMainScreen(
                 onFieldClick = { fieldId ->
                     navController.navigate(AppRoute.FieldDetails.createRoute(fieldId))
@@ -70,6 +68,8 @@ fun BottomNavGraph(navController: NavHostController, padding: Dp) {
             )
         }
         composable(route = AppRoute.Alerts.route) {
+            val alertViewModel: AlertViewModel = hiltViewModel()
+
             AlertsMainScreen(
                 onAlertClick = { alertId ->
                     navController.navigate(AppRoute.AlertDetails.createRoute(alertId))
@@ -78,6 +78,8 @@ fun BottomNavGraph(navController: NavHostController, padding: Dp) {
             )
         }
         composable(route = AppRoute.Tasks.route) {
+            val taskViewModel: TaskViewModel = hiltViewModel()
+
             TasksMainScreen(
                 viewModel = taskViewModel,
                 onTaskClick = { taskId ->
@@ -86,23 +88,25 @@ fun BottomNavGraph(navController: NavHostController, padding: Dp) {
             )
         }
         composable(route = AppRoute.Profile.route) {
+            val profileViewModel: ProfileViewModel = hiltViewModel()
+
             ProfileMainScreen(
                 viewModel = profileViewModel
             )
         }
 
         composable(route = AppRoute.Chat.route) {
+            val chatViewModel: ChatViewModel = hiltViewModel()
+
             ChatMainScreen(
                 viewModel = chatViewModel,
                 onBack = { navController.popBackStack() }
             )
         }
 
-        composable(route = AppRoute.FieldDetails.route) { backStackEntry ->
-            val fieldDetailsViewModel: FieldDetailsViewModel = viewModel(
-                backStackEntry,
-                factory = FieldDetailsViewModel.factory
-            )
+        composable(route = AppRoute.FieldDetails.route) {
+            val fieldDetailsViewModel: FieldDetailsViewModel = hiltViewModel()
+
             FieldDetailsMainScreen(
                 onBack = { navController.popBackStack() },
                 viewModel = fieldDetailsViewModel,
@@ -115,11 +119,8 @@ fun BottomNavGraph(navController: NavHostController, padding: Dp) {
                 }
             )
         }
-        composable(route = AppRoute.AlertDetails.route) { backStackEntry ->
-            val alertDetailsViewModel: AlertDetailsViewModel = viewModel(
-                backStackEntry,
-                factory = AlertDetailsViewModel.factory
-            )
+        composable(route = AppRoute.AlertDetails.route) {
+            val alertDetailsViewModel: AlertDetailsViewModel = hiltViewModel()
             AlertDetailsMainScreen(
                 onBack = { navController.popBackStack() },
                 onOpenFieldDetails = { fieldId ->
@@ -135,11 +136,8 @@ fun BottomNavGraph(navController: NavHostController, padding: Dp) {
                 }
             )
         }
-        composable(route = AppRoute.TaskDetails.route) { backStackEntry ->
-            val taskDetailsViewModel: TaskDetailsViewModel = viewModel(
-                backStackEntry,
-                factory = TaskDetailsViewModel.factory
-                )
+        composable(route = AppRoute.TaskDetails.route) {
+            val taskDetailsViewModel: TaskDetailsViewModel = hiltViewModel()
 
             TaskDetailsMainScreen(
                 onBack = { navController.popBackStack() },
@@ -156,11 +154,8 @@ fun BottomNavGraph(navController: NavHostController, padding: Dp) {
                 }
             )
         }
-        composable(route = AppRoute.Statistics.route) { backStackEntry ->
-            val statisticsViewModel: StatisticsViewModel = viewModel(
-                backStackEntry,
-                factory = StatisticsViewModel.factory
-            )
+        composable(route = AppRoute.Statistics.route) {
+            val statisticsViewModel: StatisticsViewModel = hiltViewModel()
 
             StatisticsMainScreen(
                 onBack = { navController.popBackStack() },

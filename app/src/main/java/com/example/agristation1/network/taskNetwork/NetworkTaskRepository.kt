@@ -1,5 +1,7 @@
 package com.example.agristation1.network.taskNetwork
 
+import javax.inject.Inject
+
 interface NetworkTaskRepository {
     suspend fun getTasks(): TasksNetwork
 
@@ -14,7 +16,7 @@ interface NetworkTaskRepository {
     suspend fun createTask(task: TaskDetailsNetwork): TaskSyncResponse
 }
 
-class NetworkTaskRepositoryImpl(
+class NetworkTaskRepositoryImpl @Inject constructor(
     private val taskApiService: TaskApiService
 ) : NetworkTaskRepository {
 

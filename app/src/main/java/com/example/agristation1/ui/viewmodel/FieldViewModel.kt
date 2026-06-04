@@ -11,7 +11,9 @@ import com.example.agristation1.data.SyncResult
 import com.example.agristation1.data.UserPreferencesRepository
 import com.example.agristation1.data.fieldDetails.FieldDetailsOfflineRepository
 import com.example.agristation1.data.fieldDetails.FieldDetails
+import com.example.agristation1.data.fieldDetails.FieldDetailsRepository
 import com.example.agristation1.data.fieldDetails.FieldHealth
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -20,6 +22,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 
 sealed interface FieldFilter {
@@ -54,8 +57,9 @@ data class FieldUiState(
     val criticalCount: Int = fields.count { it.health == FieldHealth.CRITICAL } + archivedFields.count { it.health == FieldHealth.CRITICAL }
 }
 
-class FieldViewModel(
-    private val fieldDetailsOfflineRepository: FieldDetailsOfflineRepository,
+@HiltViewModel
+class FieldViewModel @Inject constructor(
+    private val fieldDetailsOfflineRepository: FieldDetailsRepository,
     private val syncOrchestrator: SyncOrchestrator,
     private val userPreferencesRepository: UserPreferencesRepository
 ): ViewModel() {
@@ -115,17 +119,5 @@ class FieldViewModel(
 
     fun clearRefreshError() {
         _refreshError.value = null
-    }
-
-    companion object {
-        val factory: ViewModelProvider.Factory = viewModelFactory {
-            initializer {
-                FieldViewModel(
-                    agriStationApplication().container.fieldDetailsOfflineRepository,
-                    agriStationApplication().container.syncOrchestrator,
-                    agriStationApplication().userPreferencesRepository
-                )
-            }
-        }
     }
 }

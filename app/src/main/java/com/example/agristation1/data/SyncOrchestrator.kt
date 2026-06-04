@@ -8,6 +8,7 @@ import com.example.agristation1.network.userNetwork.UserFarmSyncManager
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import javax.inject.Inject
 
 sealed class SyncResult {
     object Success : SyncResult()
@@ -15,14 +16,20 @@ sealed class SyncResult {
     data class Error(val message: String) : SyncResult()
 }
 
-class SyncOrchestrator(
+interface SyncOrchestrator {
+    suspend fun syncAll(since: Long): SyncResult
+
+    fun mergeResults(results: List<SyncResult>): SyncResult
+}
+
+class SyncOrchestratorImpl @Inject constructor(
     private val fieldSyncManager: FieldSyncManager,
     private val alertSyncManager: AlertSyncManager,
     private val taskSyncManager: TaskSyncManager,
     private val userFarmSyncManager: UserFarmSyncManager,
     private val sensorSyncManager: SensorSyncManager
-) {
-    suspend fun syncAll(since: Long): SyncResult {
+): SyncOrchestrator {
+    override suspend fun syncAll(since: Long): SyncResult {
         return try {
             val results = mutableListOf<SyncResult>()
 
@@ -45,7 +52,7 @@ class SyncOrchestrator(
         }
     }
 
-    private fun mergeResults(results: List<SyncResult>): SyncResult {
+    override fun mergeResults(results: List<SyncResult>): SyncResult {
         val errors = results.filterIsInstance<SyncResult.Error>()
         if (errors.isNotEmpty()) return errors.first()
 

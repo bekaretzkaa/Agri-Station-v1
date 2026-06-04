@@ -63,22 +63,4 @@ abstract class AgriStationDatabase : RoomDatabase() {
 
     abstract fun userDetailsDao(): UserDetailsDao
 
-    companion object {
-        @Volatile
-        private var INSTANCE: AgriStationDatabase? = null
-
-        fun getDatabase(context: Context): AgriStationDatabase {
-            return INSTANCE  ?: synchronized(this) {
-                val instance = Room.databaseBuilder(
-                    context.applicationContext,
-                    AgriStationDatabase::class.java,
-                    "agri_station_database"
-                ).build()
-
-                INSTANCE = instance
-                instance
-            }
-        }
-    }
-
 }

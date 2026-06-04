@@ -6,18 +6,25 @@ import com.example.agristation1.data.SyncResult
 import com.example.agristation1.data.sensorDetails.SensorBattery
 import com.example.agristation1.data.sensorDetails.SensorDetails
 import com.example.agristation1.data.sensorDetails.SensorDetailsOfflineRepository
+import com.example.agristation1.data.sensorDetails.SensorDetailsRepository
 import com.example.agristation1.data.sensorDetails.SensorState
 import retrofit2.HttpException
 import java.io.IOException
 import java.lang.Exception
+import javax.inject.Inject
 
-class SensorSyncManager(
-    private val sensorDetailsOfflineRepository: SensorDetailsOfflineRepository,
+interface SensorSyncManager {
+    suspend fun sync(): SyncResult
+
+}
+
+class SensorSyncManagerImpl @Inject constructor(
+    private val sensorDetailsOfflineRepository: SensorDetailsRepository,
     private val sensorRepository: NetworkSensorRepository,
     private val db: AgriStationDatabase
-) {
+): SensorSyncManager {
 
-    suspend fun sync(): SyncResult {
+    override suspend fun sync(): SyncResult {
         return try {
 
             val response = sensorRepository.getSensors()

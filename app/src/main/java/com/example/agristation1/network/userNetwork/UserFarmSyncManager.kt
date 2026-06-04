@@ -5,21 +5,29 @@ import com.example.agristation1.data.AgriStationDatabase
 import com.example.agristation1.data.SyncResult
 import com.example.agristation1.data.farmDetails.FarmDetails
 import com.example.agristation1.data.farmDetails.FarmDetailsOfflineRepository
+import com.example.agristation1.data.farmDetails.FarmDetailsRepository
 import com.example.agristation1.data.userDetails.UserDetails
 import com.example.agristation1.data.userDetails.UserDetailsDao
 import com.example.agristation1.data.userDetails.UserDetailsOfflineRepository
+import com.example.agristation1.data.userDetails.UserDetailsRepository
 import retrofit2.HttpException
 import java.io.IOException
 import java.lang.Exception
+import javax.inject.Inject
 
-class UserFarmSyncManager(
-    private val userDetailsOfflineRepository: UserDetailsOfflineRepository,
-    private val farmDetailsOfflineRepository: FarmDetailsOfflineRepository,
+interface UserFarmSyncManager {
+    suspend fun sync(): SyncResult
+
+}
+
+class UserFarmSyncManagerImpl @Inject constructor(
+    private val userDetailsOfflineRepository: UserDetailsRepository,
+    private val farmDetailsOfflineRepository: FarmDetailsRepository,
     private val userFarmRepository: NetworkUserFarmRepository,
     private val db: AgriStationDatabase
-) {
+): UserFarmSyncManager {
 
-    suspend fun sync(): SyncResult {
+    override suspend fun sync(): SyncResult {
         return try {
             val farmResponse = userFarmRepository.getFarmDetails()
             val userResponse = userFarmRepository.getUserDetails()

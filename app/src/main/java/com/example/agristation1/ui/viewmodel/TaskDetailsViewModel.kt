@@ -15,10 +15,13 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.agristation1.data.AgriStationDatabase
 import com.example.agristation1.data.alertDetails.AlertDetails
 import com.example.agristation1.data.alertDetails.AlertDetailsOfflineRepository
+import com.example.agristation1.data.alertDetails.AlertDetailsRepository
 import com.example.agristation1.data.fieldDetails.FieldDetails
 import com.example.agristation1.data.fieldDetails.FieldDetailsOfflineRepository
+import com.example.agristation1.data.fieldDetails.FieldDetailsRepository
 import com.example.agristation1.data.taskDetails.TaskDetails
 import com.example.agristation1.data.taskDetails.TaskDetailsOfflineRepository
+import com.example.agristation1.data.taskDetails.TaskDetailsRepository
 import com.example.agristation1.data.taskDetails.TaskPriority
 import com.example.agristation1.data.taskDetails.TaskStatus
 import com.example.agristation1.data.taskDetails.TaskType
@@ -29,6 +32,7 @@ import com.example.agristation1.network.taskNetwork.TaskPendingOperationReposito
 import com.example.agristation1.network.taskNetwork.TaskPendingOperationStatus
 import com.example.agristation1.network.taskNetwork.TaskPendingOperationType
 import com.example.agristation1.network.taskNetwork.toNetwork
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -41,6 +45,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.time.Instant
 import java.time.LocalDate
+import javax.inject.Inject
 
 data class TaskDetailsUiState(
     val taskDetails: TaskDetails? = null,
@@ -50,11 +55,12 @@ data class TaskDetailsUiState(
     val fields: List<FieldDetails> = emptyList()
 )
 
-class TaskDetailsViewModel(
+@HiltViewModel
+class TaskDetailsViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
-    private val taskDetailsOfflineRepository: TaskDetailsOfflineRepository,
-    private val fieldDetailsOfflineRepository: FieldDetailsOfflineRepository,
-    private val alertDetailsOfflineRepository: AlertDetailsOfflineRepository,
+    private val taskDetailsOfflineRepository: TaskDetailsRepository,
+    private val fieldDetailsOfflineRepository: FieldDetailsRepository,
+    private val alertDetailsOfflineRepository: AlertDetailsRepository,
     private val taskPendingOperationRepository: TaskPendingOperationRepository
     ) : ViewModel() {
 
@@ -224,19 +230,5 @@ class TaskDetailsViewModel(
 
     fun onTypeChange(value: TaskType) {
         state = state.copy(type = value)
-    }
-
-    companion object {
-        val factory: ViewModelProvider.Factory = viewModelFactory {
-            initializer {
-                TaskDetailsViewModel(
-                    this.createSavedStateHandle(),
-                    agriStationApplication().container.taskDetailsOfflineRepository,
-                    agriStationApplication().container.fieldDetailsOfflineRepository,
-                    agriStationApplication().container.alertDetailsOfflineRepository,
-                    agriStationApplication().container.taskPendingOperationRepository
-                )
-            }
-        }
     }
 }

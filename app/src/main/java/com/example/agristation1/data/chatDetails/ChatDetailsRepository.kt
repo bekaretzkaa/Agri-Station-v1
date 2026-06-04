@@ -2,6 +2,7 @@ package com.example.agristation1.data.chatDetails
 
 import kotlinx.coroutines.flow.Flow
 import java.time.Instant
+import javax.inject.Inject
 
 interface ChatDetailsRepository {
 
@@ -25,7 +26,9 @@ interface ChatDetailsRepository {
 
 }
 
-class ChatDetailsOfflineRepository(private val chatDetailsDao: ChatDetailsDao) : ChatDetailsRepository {
+class ChatDetailsOfflineRepository @Inject constructor(
+    private val chatDetailsDao: ChatDetailsDao
+) : ChatDetailsRepository {
 
     override fun getAllChats(): Flow<List<ChatEntity>> {
         return chatDetailsDao.getAllChats()

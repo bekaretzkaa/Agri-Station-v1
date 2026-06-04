@@ -7,11 +7,13 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.agristation1.data.chatDetails.ChatDetailsOfflineRepository
+import com.example.agristation1.data.chatDetails.ChatDetailsRepository
 import com.example.agristation1.data.chatDetails.ChatEntity
 import com.example.agristation1.data.chatDetails.ChatMessageEntity
 import com.example.agristation1.data.chatDetails.MessageRole
 import com.example.agristation1.data.chatDetails.MessageStatus
 import com.example.agristation1.network.gemini.GeminiRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -24,6 +26,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.lang.Exception
 import java.time.Instant
+import javax.inject.Inject
 
 data class ChatUiState(
     val chatHistory: List<ChatEntity> = emptyList(),
@@ -32,8 +35,9 @@ data class ChatUiState(
     val isSending: Boolean = false
 )
 
-class ChatViewModel(
-    private val chatDetailsOfflineRepository: ChatDetailsOfflineRepository,
+@HiltViewModel
+class ChatViewModel @Inject constructor(
+    private val chatDetailsOfflineRepository: ChatDetailsRepository,
     private val geminiRepository: GeminiRepository
 ) : ViewModel() {
 
@@ -196,16 +200,5 @@ class ChatViewModel(
         if (lastUserInput.isBlank()) return
         input.value = lastUserInput
         onSendQuery()
-    }
-
-    companion object {
-        val factory: ViewModelProvider.Factory = viewModelFactory {
-            initializer {
-                ChatViewModel(
-                    agriStationApplication().container.chatDetailsOfflineRepository,
-                    agriStationApplication().container.geminiRepository
-                )
-            }
-        }
     }
 }

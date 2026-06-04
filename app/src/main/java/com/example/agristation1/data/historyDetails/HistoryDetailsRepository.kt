@@ -1,6 +1,7 @@
 package com.example.agristation1.data.historyDetails
 
 import kotlinx.coroutines.flow.Flow
+import javax.inject.Inject
 
 interface HistoryOfflineRepository {
     // Temperature
@@ -28,7 +29,7 @@ interface HistoryOfflineRepository {
     suspend fun deleteOlderThan(before: Long)
 }
 
-class HistoryOfflineRepositoryImpl(
+class HistoryOfflineRepositoryImpl @Inject constructor(
     private val historyDetailsDao: HistoryDetailsDao
 ) : HistoryOfflineRepository {
 
