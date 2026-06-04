@@ -55,7 +55,7 @@ The project was built as a personal/portfolio Android project over **80+ hours**
 | Maps | Google Maps SDK for Android |
 | AI | Google Gemini API |
 | Async | Kotlin Coroutines, Flow, StateFlow |
-| Dependency Injection | Manual DI through `AppContainer` |
+| Dependency Injection | Hilt (Dagger 2) |
 
 ---
 
@@ -95,7 +95,7 @@ Offline Repositories (Room)   ◄──── SyncManagers (background sync)
 - **Cursor-based incremental sync** — endpoints such as `/fields/sync?since=<cursor>` return only changes since the previous sync. The client stores `nextCursor` and uses it on the next request.
 - **Flow-driven UI** — repositories expose `Flow<T>`, ViewModels combine streams into `StateFlow<UiState>`, and Compose screens recompose automatically when data changes.
 - **Aggregated history queries** — raw sensor history is stored in Room, while Week and Month statistics use SQL aggregation with `AVG(...) GROUP BY (...)` buckets.
-- **Manual dependency injection** — dependencies are assembled in `AppContainer` without third-party DI frameworks.
+- **Hilt dependency injection** — dependencies are provided via Hilt modules (`DatabaseModule`, `DatabaseRepositoryModule`, `NetworkModule`, `NetworkRepositoryModule`, `PreferencesModule`, `SyncModule`) declared in the `di/` package.
 
 ---
 
@@ -112,9 +112,14 @@ app/src/main/java/com/example/agristation1/
 │   ├── sensorDetails/      # Sensor entity, DAO, repository
 │   ├── taskDetails/        # Task entity, DAO, repository
 │   ├── userDetails/        # User and farm entities
-│   ├── AgriStationDatabase.kt
-│   ├── AppContainer.kt
-│   └── SyncOrchestrator.kt
+│   └── AgriStationDatabase.kt
+├── di/                     # Hilt dependency injection modules
+│   ├── DatabaseModule.kt
+│   ├── DatabaseRepositoryModule.kt
+│   ├── NetworkModule.kt
+│   ├── NetworkRepositoryModule.kt
+│   ├── PreferencesModule.kt
+│   └── SyncModule.kt
 ├── network/                # API services and synchronization logic
 │   ├── alertNetwork/       # Alert API, sync manager, pending operations
 │   ├── fieldNetwork/       # Field API and history sync
@@ -244,6 +249,7 @@ Sensor history is pruned automatically on app start to keep local storage bounde
 
 This project helped me practice several production-style Android engineering topics:
 
+- Setting up Hilt for dependency injection across data, network, and sync layers using scoped modules.
 - Designing offline-first synchronization with cursor-based pagination and a pending operations queue.
 - Building reactive state management with `Flow`, `StateFlow`, `combine`, and `flatMapLatest`.
 - Writing efficient Room queries for aggregated statistics over thousands of sensor readings.
