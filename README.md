@@ -253,23 +253,9 @@ This project helped me practice several production-style Android engineering top
 
 ---
 
-## Demo Video
+## 🎥 Demo Video
 
-A 2.5-minute demo video is a good length for a README, but instead of committing a large video directly into the repository, the recommended approach is to upload the video as a GitHub asset, release asset, or external video link, then reference it here.
-
-Example using a clickable thumbnail:
-
-```md
-[![Watch the demo](docs/screenshots/screen_home.png)](https://github.com/YOUR_USERNAME/YOUR_REPOSITORY/assets/YOUR_ASSET_ID/demo.mp4)
-```
-
-Example using a direct video link:
-
-```md
-https://github.com/YOUR_USERNAME/YOUR_REPOSITORY/assets/YOUR_ASSET_ID/demo.mp4
-```
-
-For best compatibility, export the video as `.mp4` with the H.264 codec and keep the file size as small as possible.
+[Download / Watch Demo Video](https://github.com/bekaretzkaa/Agri-Station-v1/releases/download/agri-station-demo/demo.webm)
 
 ---
 
